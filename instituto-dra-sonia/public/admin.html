@@ -1,0 +1,1462 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Painel — Instituto Dra Sônia Machado</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --p:#A84E68;--pl:#C47A92;--pd:#7D2E48;--gold:#B8935A;
+  --bg:#F7F3F2;--white:#FFFFFF;--border:#E5DADA;
+  --text:#2A1820;--muted:#927880;
+  --green:#1C8A52;--red:#B03030;--amber:#B06818;--blue:#2E5FAA;
+  --r:14px;
+  --shadow:0 1px 4px rgba(0,0,0,.04),0 6px 20px rgba(0,0,0,.07);
+}
+html,body{height:100%;font-family:'DM Sans',sans-serif;color:var(--text);}
+body{background:var(--bg);}
+
+/* ── LOGIN ── */
+#loginScreen{
+  position:fixed;inset:0;display:flex;align-items:center;justify-content:center;
+  background:linear-gradient(150deg,#14060E 0%,#3C1228 50%,#7D2E48 100%);
+  z-index:999;padding:20px;
+}
+.login-box{
+  background:#fff;border-radius:24px;padding:52px 44px;width:100%;max-width:400px;
+  text-align:center;box-shadow:0 32px 100px rgba(0,0,0,.45);
+}
+.login-logo{font-family:'Cormorant Garamond',serif;font-size:1.7rem;color:var(--p);margin-bottom:4px;font-weight:700;}
+.login-sub{font-size:.7rem;letter-spacing:3px;text-transform:uppercase;color:var(--muted);margin-bottom:40px;}
+.login-input{
+  width:100%;padding:15px 18px;border:1.5px solid var(--border);border-radius:12px;
+  font-size:1rem;font-family:'DM Sans',sans-serif;margin-bottom:14px;transition:border .2s;
+}
+.login-input:focus{outline:none;border-color:var(--p);}
+.login-btn{
+  width:100%;padding:16px;background:var(--p);color:#fff;border:none;border-radius:50px;
+  font-size:1rem;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;transition:background .2s;letter-spacing:.3px;
+}
+.login-btn:hover{background:var(--pd);}
+.login-err{color:var(--red);font-size:.85rem;margin-top:12px;display:none;}
+
+/* ── LAYOUT ── */
+#app{display:none;flex-direction:column;min-height:100vh;}
+
+/* ── TOPBAR ── */
+.topbar{
+  background:linear-gradient(135deg,#1A0A12 0%,#38142A 100%);
+  padding:0 28px;display:flex;align-items:stretch;
+  box-shadow:0 2px 20px rgba(0,0,0,.3);position:sticky;top:0;z-index:100;
+}
+.topbar-brand{
+  font-family:'Cormorant Garamond',serif;font-size:1.15rem;color:#fff;font-weight:700;
+  padding:18px 24px 18px 0;margin-right:20px;border-right:1px solid rgba(255,255,255,.1);
+  white-space:nowrap;letter-spacing:.3px;
+}
+.topbar-brand span{display:block;font-family:'DM Sans',sans-serif;font-size:.6rem;letter-spacing:3px;text-transform:uppercase;opacity:.45;margin-top:3px;font-weight:400;}
+.tabs{display:flex;gap:0;align-items:stretch;flex:1;}
+.tab{
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;
+  padding:12px 24px;cursor:pointer;color:rgba(255,255,255,.45);
+  font-size:.72rem;font-weight:600;letter-spacing:.8px;text-transform:uppercase;
+  transition:all .25s;border-bottom:3px solid transparent;min-width:100px;
+}
+.tab:hover{color:rgba(255,255,255,.8);background:rgba(255,255,255,.05);}
+.tab.active{color:#fff;border-bottom-color:var(--pl);background:rgba(255,255,255,.07);}
+.tab-icon{font-size:1.15rem;}
+.topbar-right{display:flex;align-items:center;gap:10px;padding-left:20px;margin-left:auto;}
+.btn-top{
+  padding:8px 18px;border-radius:22px;border:1px solid rgba(255,255,255,.2);
+  background:transparent;color:rgba(255,255,255,.8);font-size:.78rem;cursor:pointer;
+  font-family:'DM Sans',sans-serif;transition:all .2s;white-space:nowrap;font-weight:500;
+}
+.btn-top:hover{background:rgba(255,255,255,.1);border-color:rgba(255,255,255,.35);}
+.btn-top.primary{background:var(--p);border-color:var(--p);color:#fff;}
+.btn-top.primary:hover{background:var(--pd);border-color:var(--pd);}
+
+/* ── CONTENT ── */
+.content{flex:1;padding:28px 28px 80px;max-width:1360px;width:100%;margin:0 auto;}
+.tab-pane{display:none;}
+.tab-pane.active{display:block;animation:fadeUp .3s ease both;}
+@keyframes fadeUp{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
+
+/* ── AGENDA UNIFICADA ── */
+.agenda-wrap{
+  display:grid;
+  grid-template-columns:322px 1fr;
+  gap:24px;
+  align-items:start;
+}
+@media(max-width:920px){.agenda-wrap{grid-template-columns:1fr;}}
+
+/* ── CALENDÁRIO ── */
+.cal-nav-bar{
+  display:flex;align-items:center;gap:8px;
+  background:var(--white);border-radius:var(--r) var(--r) 0 0;
+  padding:14px 16px;border:1px solid var(--border);border-bottom:none;
+}
+.cal-month-title{
+  font-family:'Cormorant Garamond',serif;font-size:1.05rem;color:var(--text);
+  flex:1;text-align:center;font-weight:600;letter-spacing:.3px;
+}
+.nav-btn{
+  width:30px;height:30px;border:1.5px solid var(--border);border-radius:8px;
+  background:var(--white);cursor:pointer;font-size:.95rem;color:var(--muted);
+  display:flex;align-items:center;justify-content:center;transition:all .2s;flex-shrink:0;
+}
+.nav-btn:hover{border-color:var(--p);color:var(--p);background:#FFF5F7;}
+.btn-hoje{
+  padding:6px 12px;background:var(--p);color:#fff;border:none;border-radius:16px;
+  font-size:.7rem;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;
+  transition:all .2s;white-space:nowrap;letter-spacing:.4px;text-transform:uppercase;
+}
+.btn-hoje:hover{background:var(--pd);}
+.cal-grid-wrap{
+  background:var(--white);border-radius:0 0 var(--r) var(--r);
+  border:1px solid var(--border);overflow:hidden;
+}
+.cal-weekdays{display:grid;grid-template-columns:repeat(7,1fr);background:linear-gradient(135deg,var(--pd),var(--p));}
+.cal-wday{text-align:center;padding:7px 2px;font-size:.58rem;font-weight:700;color:rgba(255,255,255,.9);letter-spacing:.8px;text-transform:uppercase;}
+.cal-days{display:grid;grid-template-columns:repeat(7,1fr);}
+.cal-cell{
+  min-height:48px;border-right:1px solid var(--border);border-bottom:1px solid var(--border);
+  padding:6px 5px 4px;cursor:pointer;transition:background .15s;
+}
+.cal-cell:nth-child(7n){border-right:none;}
+.cal-cell:hover:not(.other-month):not(.cal-empty){background:#FDF5F7;}
+.cal-cell.today{background:#FFF0F4;}
+.cal-cell.selected{background:rgba(168,78,104,.12);box-shadow:inset 0 0 0 2px var(--p);}
+.cal-cell.today.selected{background:#FFDDE6;}
+.cal-cell.cal-empty{background:var(--bg);cursor:default;}
+.cal-cell.other-month{background:var(--bg);opacity:.3;cursor:default;}
+.cal-day-num{font-size:.72rem;font-weight:600;color:var(--text);line-height:1.1;}
+.cal-cell.today .cal-day-num{
+  background:var(--p);color:#fff;width:20px;height:20px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;font-size:.64rem;
+}
+.cal-dots{display:flex;gap:2px;flex-wrap:wrap;margin-top:3px;}
+.cal-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0;}
+.cal-dot.ag  {background:var(--blue);}
+.cal-dot.ok  {background:var(--green);}
+.cal-dot.falt{background:var(--red);}
+.cal-dot.reag{background:var(--amber);}
+.cal-extra{font-size:.55rem;color:var(--muted);margin-top:1px;}
+.cal-legend{display:flex;gap:10px;flex-wrap:wrap;padding:10px 2px 4px;}
+.leg-item{display:flex;align-items:center;gap:5px;font-size:.67rem;color:var(--muted);font-weight:500;}
+.leg-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;}
+
+/* ── DIA ── */
+.day-header{
+  display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;
+  background:var(--white);border-radius:var(--r);padding:16px 22px;
+  box-shadow:var(--shadow);border:1px solid var(--border);margin-bottom:18px;
+}
+.date-display{font-family:'Cormorant Garamond',serif;font-size:1.3rem;color:var(--text);font-weight:600;}
+
+/* ── STATS ── */
+.stats-row{display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:12px;margin-bottom:18px;}
+.stat-card{
+  background:var(--white);border-radius:var(--r);padding:16px 14px;
+  border:1px solid var(--border);box-shadow:var(--shadow);text-align:center;
+  border-top:3px solid var(--p);
+}
+.stat-num{font-size:1.9rem;font-weight:700;color:var(--p);line-height:1;}
+.stat-lbl{font-size:.62rem;color:var(--muted);margin-top:5px;letter-spacing:.6px;text-transform:uppercase;font-weight:600;}
+.stat-card.g{border-top-color:var(--green);} .stat-card.g .stat-num{color:var(--green);}
+.stat-card.r{border-top-color:var(--red);}   .stat-card.r .stat-num{color:var(--red);}
+.stat-card.a{border-top-color:var(--amber);} .stat-card.a .stat-num{color:var(--amber);}
+
+/* ── SECTION HEADER ── */
+.sec-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;}
+.sec-title{font-family:'Cormorant Garamond',serif;font-size:1.2rem;color:var(--text);font-weight:600;}
+.btn-add{
+  padding:9px 18px;background:var(--p);color:#fff;border:none;border-radius:22px;
+  font-size:.78rem;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;
+  transition:all .2s;letter-spacing:.3px;
+}
+.btn-add:hover{background:var(--pd);box-shadow:0 4px 14px rgba(168,78,104,.3);}
+
+/* ── CARTÕES AGENDAMENTO ── */
+.ag-list{display:flex;flex-direction:column;gap:12px;}
+.ag-card{
+  background:var(--white);border-radius:var(--r);padding:16px 20px;
+  border:1px solid var(--border);box-shadow:var(--shadow);
+  display:flex;align-items:center;gap:16px;flex-wrap:wrap;transition:all .2s;
+  border-left:4px solid transparent;
+}
+.ag-card:hover{box-shadow:0 4px 24px rgba(0,0,0,.1);border-left-color:var(--p);}
+.ag-time{font-size:1.45rem;font-weight:700;color:var(--p);min-width:62px;font-variant-numeric:tabular-nums;letter-spacing:-.5px;}
+.ag-body{flex:1;min-width:130px;}
+.ag-name{font-weight:600;font-size:.96rem;letter-spacing:-.1px;}
+.ag-sub{font-size:.78rem;color:var(--muted);margin-top:3px;}
+.ag-phone{font-size:.75rem;color:var(--muted);margin-top:2px;}
+.ag-obs{font-size:.73rem;color:var(--amber);margin-top:4px;font-style:italic;}
+.ag-right{display:flex;flex-direction:column;align-items:flex-end;gap:8px;}
+.badge{display:inline-block;padding:4px 12px;border-radius:20px;font-size:.69rem;font-weight:700;white-space:nowrap;letter-spacing:.3px;}
+.b-ag  {background:#EDF2FF;color:var(--blue);}
+.b-ok  {background:#E8F7EF;color:var(--green);}
+.b-falt{background:#FFF0F0;color:var(--red);}
+.b-canc{background:#F3F3F3;color:#999;}
+.b-reag{background:#FFF7E6;color:var(--amber);}
+.ag-btns{display:flex;gap:6px;flex-wrap:wrap;}
+.ab{padding:7px 12px;border-radius:8px;font-size:.74rem;font-weight:600;cursor:pointer;border:none;font-family:'DM Sans',sans-serif;white-space:nowrap;transition:all .2s;}
+.ab-g{background:#E8F7EF;color:var(--green);}  .ab-g:hover{background:var(--green);color:#fff;}
+.ab-r{background:#FFF0F0;color:var(--red);}    .ab-r:hover{background:var(--red);color:#fff;}
+.ab-a{background:#FFF7E6;color:var(--amber);}  .ab-a:hover{background:var(--amber);color:#fff;}
+.ab-x{background:#F0F0F0;color:#888;}          .ab-x:hover{background:#DDD;color:#555;}
+
+/* ── VAZIO ── */
+.empty{text-align:center;padding:50px 20px;color:var(--muted);}
+.empty-icon{font-size:3rem;margin-bottom:14px;}
+.empty p{font-size:.9rem;line-height:1.7;}
+
+/* ── FINANCEIRO ── */
+.fin-cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:16px;margin-bottom:28px;}
+.fin-card{
+  background:var(--white);border-radius:var(--r);padding:24px 20px;
+  box-shadow:var(--shadow);border:1px solid var(--border);border-top:3px solid var(--p);
+}
+.fin-card-lbl{font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:var(--muted);margin-bottom:10px;}
+.fin-card-val{font-size:1.55rem;font-weight:700;color:var(--p);line-height:1.1;}
+.fin-card-sub{font-size:.74rem;color:var(--muted);margin-top:6px;}
+.fin-card.gold{border-top-color:var(--gold);} .fin-card.gold .fin-card-val{color:var(--gold);}
+.fin-row{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:24px;}
+@media(max-width:700px){.fin-row{grid-template-columns:1fr;}}
+.chart-box{background:var(--white);border-radius:var(--r);padding:24px;box-shadow:var(--shadow);border:1px solid var(--border);}
+.chart-title{font-family:'Cormorant Garamond',serif;font-size:1.15rem;color:var(--text);margin-bottom:18px;font-weight:600;}
+.pay-methods{display:flex;flex-direction:column;gap:12px;margin-top:4px;}
+.pay-row{display:flex;align-items:center;gap:12px;}
+.pay-bar-wrap{flex:1;background:var(--bg);border-radius:6px;height:8px;overflow:hidden;}
+.pay-bar{height:100%;background:linear-gradient(90deg,var(--pl),var(--p));border-radius:6px;transition:width .8s ease;}
+.pay-lbl{font-size:.82rem;min-width:110px;font-weight:500;}
+.pay-val{font-size:.82rem;font-weight:700;min-width:85px;text-align:right;color:var(--p);}
+.top-services{display:flex;flex-direction:column;gap:8px;margin-top:4px;}
+.ts-row{display:flex;align-items:center;justify-content:space-between;padding:9px 0;border-bottom:1px solid var(--border);}
+.ts-row:last-child{border:none;}
+.ts-name{font-size:.86rem;flex:1;font-weight:500;}
+.ts-count{font-size:.78rem;font-weight:700;color:var(--p);background:#FFF0F4;padding:4px 12px;border-radius:12px;}
+.pay-table{width:100%;border-collapse:collapse;font-size:.84rem;}
+.pay-table th{text-align:left;padding:12px 14px;color:var(--muted);font-weight:700;font-size:.67rem;text-transform:uppercase;letter-spacing:1px;border-bottom:2px solid var(--border);background:var(--bg);}
+.pay-table td{padding:13px 14px;border-bottom:1px solid var(--border);}
+.pay-table tr:last-child td{border:none;}
+.pay-table tr:hover td{background:#FDF9F7;}
+.valor-cell{font-weight:700;color:var(--green);}
+.forma-badge{padding:4px 10px;border-radius:10px;font-size:.69rem;font-weight:700;background:#EDF2FF;color:var(--blue);letter-spacing:.3px;}
+
+/* ── PACIENTES ── */
+.search-bar{display:flex;gap:12px;margin-bottom:22px;background:var(--white);border-radius:var(--r);padding:18px 22px;box-shadow:var(--shadow);border:1px solid var(--border);}
+.search-input{flex:1;padding:12px 18px;border:1.5px solid var(--border);border-radius:10px;font-size:.95rem;font-family:'DM Sans',sans-serif;transition:border .2s;}
+.search-input:focus{outline:none;border-color:var(--p);}
+.btn-search{padding:12px 24px;background:var(--p);color:#fff;border:none;border-radius:10px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .2s;letter-spacing:.2px;}
+.btn-search:hover{background:var(--pd);}
+.patient-card{background:var(--white);border-radius:var(--r);padding:20px 24px;box-shadow:var(--shadow);border:1px solid var(--border);margin-bottom:12px;}
+.patient-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;}
+.patient-name{font-size:1.05rem;font-weight:700;letter-spacing:-.1px;}
+.patient-phone{font-size:.84rem;color:var(--muted);margin-top:2px;}
+.patient-stats{display:flex;gap:24px;flex-wrap:wrap;padding:12px 0;border-top:1px solid var(--border);border-bottom:1px solid var(--border);margin-bottom:14px;}
+.ps-item{font-size:.82rem;font-weight:500;}
+.ps-item span{font-weight:700;color:var(--p);}
+.patient-history{display:flex;flex-direction:column;gap:6px;}
+.ph-row{display:flex;align-items:center;gap:14px;font-size:.82rem;padding:7px 0;border-bottom:1px dashed var(--border);}
+.ph-row:last-child{border:none;}
+.ph-date{font-weight:600;min-width:90px;}
+.ph-svc{color:var(--text);flex:1;}
+.ph-time{color:var(--muted);}
+
+/* ── MODAIS ── */
+.modal-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:500;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(4px);}
+.modal-bg.open{display:flex;}
+.modal{background:#fff;border-radius:22px;padding:0;width:100%;max-width:500px;box-shadow:0 24px 80px rgba(0,0,0,.2);max-height:90vh;display:flex;flex-direction:column;}
+.modal-header{padding:26px 30px 20px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border);}
+.modal-header h3{font-family:'Cormorant Garamond',serif;font-size:1.45rem;color:var(--text);font-weight:700;}
+.modal-close{background:none;border:none;font-size:1.4rem;cursor:pointer;color:var(--muted);padding:4px;line-height:1;transition:color .2s;}
+.modal-close:hover{color:var(--text);}
+.modal-body{padding:22px 30px;overflow-y:auto;flex:1;}
+.modal-footer{padding:0 30px 26px;display:flex;gap:10px;}
+.modal-footer button{flex:1;padding:14px;border-radius:50px;font-size:.92rem;font-weight:600;cursor:pointer;border:none;font-family:'DM Sans',sans-serif;transition:all .2s;letter-spacing:.2px;}
+.mb-confirm{background:var(--p);color:#fff;}  .mb-confirm:hover{background:var(--pd);}
+.mb-cancel{background:var(--bg);color:var(--text);}  .mb-cancel:hover{background:var(--border);}
+.mfield{margin-bottom:20px;}
+.mfield label{display:block;font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.9px;color:var(--muted);margin-bottom:8px;}
+.mfield input,.mfield select,.mfield textarea{width:100%;padding:13px 16px;border:1.5px solid var(--border);border-radius:10px;font-size:.95rem;font-family:'DM Sans',sans-serif;color:var(--text);background:#fff;transition:border .2s;}
+.mfield input:focus,.mfield select:focus,.mfield textarea:focus{outline:none;border-color:var(--p);}
+.mfield .hint{font-size:.74rem;color:var(--muted);margin-top:6px;}
+.input-money{position:relative;}
+.input-money::before{content:'R$';position:absolute;left:15px;top:50%;transform:translateY(-50%);color:var(--muted);font-size:.88rem;pointer-events:none;font-weight:600;}
+.input-money input{padding-left:42px;}
+.info-row{background:#FFF5F7;border:1px solid #EAC0CC;border-radius:10px;padding:13px 18px;margin-bottom:20px;font-size:.86rem;color:var(--pd);line-height:1.6;}
+
+/* ── TOAST ── */
+.toast{position:fixed;bottom:28px;right:28px;background:#22111A;color:#fff;padding:14px 22px;border-radius:12px;font-size:.87rem;box-shadow:0 8px 28px rgba(0,0,0,.25);z-index:9999;opacity:0;transform:translateY(8px);transition:all .3s;pointer-events:none;font-weight:500;}
+.toast.show{opacity:1;transform:translateY(0);}
+.toast.ok{background:#1A6640;}
+.toast.err{background:#9C2E2E;}
+
+/* ── ANAMNESE ── */
+.anam-top{display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:14px;margin-bottom:22px;}
+.anam-sub{font-size:.84rem;color:var(--muted);margin-top:4px;}
+.btn-sec{padding:9px 18px;background:var(--white);color:var(--text);border:1.5px solid var(--border);border-radius:22px;font-size:.78rem;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .2s;}
+.btn-sec:hover{border-color:var(--p);color:var(--p);}
+.btn-salvar{padding:9px 18px;background:var(--green);color:#fff;border:none;border-radius:22px;font-size:.78rem;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .2s;letter-spacing:.2px;}
+.btn-salvar:hover{background:#166640;}
+.btn-imprimir{padding:9px 18px;background:#2A1820;color:#fff;border:none;border-radius:22px;font-size:.78rem;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .2s;letter-spacing:.2px;}
+.btn-imprimir:hover{background:#1A0810;}
+/* Fichas salvas */
+.fichas-wrap{margin-top:32px;padding-top:24px;border-top:2px solid var(--border);}
+.fichas-header{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:16px;}
+.fichas-search-input{padding:10px 16px;border:1.5px solid var(--border);border-radius:22px;font-size:.86rem;font-family:'DM Sans',sans-serif;min-width:260px;transition:border .2s;}
+.fichas-search-input:focus{outline:none;border-color:var(--p);}
+.ficha-card{background:var(--white);border-radius:var(--r);padding:15px 20px;box-shadow:var(--shadow);border:1px solid var(--border);margin-bottom:10px;display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;transition:all .2s;border-left:4px solid transparent;}
+.ficha-card:hover{border-left-color:var(--p);box-shadow:0 4px 18px rgba(0,0,0,.09);}
+.ficha-nome{font-weight:700;font-size:.95rem;letter-spacing:-.1px;}
+.ficha-meta{font-size:.76rem;color:var(--muted);margin-top:3px;}
+.ficha-btns{display:flex;gap:8px;flex-shrink:0;}
+.anam-card{background:var(--white);border-radius:var(--r);padding:26px 28px;box-shadow:var(--shadow);border:1px solid var(--border);margin-bottom:18px;}
+.anam-stitle{font-family:'Cormorant Garamond',serif;font-size:1.1rem;font-weight:700;color:var(--p);margin-bottom:18px;padding-bottom:10px;border-bottom:1.5px solid var(--border);letter-spacing:.3px;}
+.anam-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+@media(max-width:600px){.anam-grid{grid-template-columns:1fr;}}
+.anam-field{display:flex;flex-direction:column;gap:6px;}
+.anam-field label{font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.9px;color:var(--muted);}
+.anam-field input,.anam-field textarea{padding:11px 14px;border:1.5px solid var(--border);border-radius:9px;font-size:.9rem;font-family:'DM Sans',sans-serif;color:var(--text);transition:border .2s;resize:vertical;background:#fff;}
+.anam-field input:focus,.anam-field textarea:focus{outline:none;border-color:var(--p);}
+.anam-q{margin-bottom:18px;}
+.anam-qlabel{font-size:.9rem;font-weight:500;color:var(--text);margin-bottom:10px;line-height:1.55;}
+.anam-qlabel-italic{font-style:italic;color:var(--muted);}
+.anam-hint{display:block;font-size:.76rem;color:var(--muted);font-style:italic;margin-top:2px;}
+.yn-row{display:flex;gap:10px;flex-wrap:wrap;align-items:center;}
+.yn{cursor:pointer;}
+.yn input[type=radio]{display:none;}
+.yn span{display:inline-block;padding:7px 20px;border-radius:20px;font-size:.82rem;font-weight:600;border:1.5px solid var(--border);color:var(--muted);transition:all .2s;user-select:none;}
+.yn:has(input:checked) span{background:var(--p);color:#fff;border-color:var(--p);}
+.yn span:hover{border-color:var(--pl);color:var(--pl);}
+.anam-det{display:none;margin-top:10px;}
+.anam-det input{width:100%;padding:11px 14px;border:1.5px solid var(--border);border-radius:9px;font-size:.88rem;font-family:'DM Sans',sans-serif;color:var(--text);transition:border .2s;background:#fff;}
+.anam-det input:focus{outline:none;border-color:var(--p);}
+.anam-confirm-card{border-color:var(--p);}
+.anam-assinatura{margin-top:36px;text-align:center;}
+.anam-asslin{border-bottom:1.5px solid var(--text);width:60%;margin:0 auto;}
+.anam-assleg{font-size:.74rem;color:var(--muted);margin-top:6px;}
+/* Cabeçalho de impressão oculto na tela */
+.print-header{display:none;}
+
+/* ── IMPRESSÃO ── */
+@media print{
+  *{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important;}
+  body{background:#fff!important;font-family:'DM Sans',sans-serif;}
+  #loginScreen,.topbar,.no-print,.toast{display:none!important;}
+  #app{display:block!important;}
+  .content{padding:0 10mm!important;max-width:100%!important;}
+  .tab-pane{display:none!important;}
+  #pane-anamnese{display:block!important;animation:none!important;}
+  .print-header{display:block!important;text-align:center;margin-bottom:20px;padding-bottom:14px;border-bottom:2px solid #7D2E48;}
+  .ph-logo{font-family:'Cormorant Garamond',serif;font-size:18pt;font-weight:700;color:#7D2E48;}
+  .ph-title{font-size:10.5pt;color:#555;margin-top:3px;}
+  .ph-meta{font-size:9pt;color:#888;margin-top:3px;}
+  .anam-card{box-shadow:none!important;border:1px solid #D0C0C0!important;border-radius:6px!important;padding:12px 14px!important;margin-bottom:10px!important;break-inside:avoid;}
+  .anam-stitle{font-size:10.5pt;border-bottom:1px solid #CCC!important;padding-bottom:6px!important;margin-bottom:10px!important;color:#7D2E48!important;}
+  .anam-qlabel{font-size:9pt;margin-bottom:7px!important;}
+  .anam-hint{font-size:8pt;}
+  .anam-q{margin-bottom:12px!important;}
+  .yn span{font-size:8pt!important;padding:3px 10px!important;border:1px solid #AAA!important;border-radius:10px!important;}
+  .yn:has(input:checked) span{background:#7D2E48!important;color:#fff!important;border-color:#7D2E48!important;}
+  .anam-field input,.anam-field textarea{border:none!important;border-bottom:1px solid #AAA!important;border-radius:0!important;padding:3px 2px!important;font-size:9.5pt!important;background:transparent!important;}
+  .anam-det{display:block!important;}
+  .anam-det input{border:none!important;border-bottom:1px solid #AAA!important;border-radius:0!important;padding:3px 2px!important;font-size:9pt!important;background:transparent!important;}
+  .anam-grid{gap:8px!important;}
+  .anam-field label{font-size:7.5pt!important;}
+  .anam-sub,.btn-sec,.btn-imprimir{display:none!important;}
+  .anam-assinatura{margin-top:28px!important;}
+  .anam-asslin{border-bottom:1px solid #000!important;}
+  .anam-assleg{font-size:8pt!important;}
+  .anam-confirm-card{border-color:#D0C0C0!important;}
+}
+
+/* ── RESPONSIVO ── */
+@media(max-width:768px){
+  .topbar{padding:0 14px;}
+  .topbar-brand{display:none;}
+  .tab{min-width:72px;padding:10px 12px;font-size:.67rem;}
+  .content{padding:16px 12px 80px;}
+  .ag-card{flex-direction:column;align-items:flex-start;}
+  .ag-right{align-items:flex-start;}
+  .fin-row{grid-template-columns:1fr;}
+}
+@media(max-width:480px){
+  .tab-icon{font-size:1.1rem;}
+  .tab span:not(.tab-icon){display:none;}
+  .tab{min-width:56px;}
+}
+</style>
+</head>
+<body>
+
+<!-- ── LOGIN ── -->
+<div id="loginScreen">
+  <div class="login-box">
+    <div class="login-logo">Instituto Dra Sônia Machado</div>
+    <div class="login-sub">Painel Administrativo</div>
+    <input type="password" class="login-input" id="loginPwd" placeholder="Digite a senha de acesso" onkeydown="if(event.key==='Enter')entrar()">
+    <button class="login-btn" onclick="entrar()">Entrar no Sistema</button>
+    <p class="login-err" id="loginErr">Senha incorreta. Tente novamente.</p>
+  </div>
+</div>
+
+<!-- ── APP ── -->
+<div id="app">
+
+  <div class="topbar">
+    <div class="topbar-brand">Instituto Dra Sônia Machado<span>Painel de Gestão</span></div>
+    <div class="tabs">
+      <div class="tab active" data-tab="agenda" onclick="showTab('agenda')">
+        <span class="tab-icon">📅</span><span>Agenda</span>
+      </div>
+      <div class="tab" data-tab="financeiro" onclick="showTab('financeiro')">
+        <span class="tab-icon">💰</span><span>Financeiro</span>
+      </div>
+      <div class="tab" data-tab="anamnese" onclick="showTab('anamnese')">
+        <span class="tab-icon">📋</span><span>Anamnese</span>
+      </div>
+    </div>
+    <div class="topbar-right">
+      <button class="btn-top primary" onclick="abrirNovoModal()">➕ Novo</button>
+      <button class="btn-top" onclick="sair()">Sair →</button>
+    </div>
+  </div>
+
+  <div class="content">
+
+    <!-- ── ABA AGENDA (calendário + lista unificados) ── -->
+    <div class="tab-pane active" id="pane-agenda">
+      <div class="agenda-wrap">
+
+        <!-- Coluna esquerda: calendário compacto -->
+        <div>
+          <div class="cal-nav-bar">
+            <button class="nav-btn" onclick="calNav(-1)">‹</button>
+            <div class="cal-month-title" id="calTitle">—</div>
+            <button class="nav-btn" onclick="calNav(1)">›</button>
+            <button class="btn-hoje" onclick="irHoje()">Hoje</button>
+          </div>
+          <div class="cal-grid-wrap">
+            <div class="cal-weekdays">
+              <div class="cal-wday">DOM</div><div class="cal-wday">SEG</div>
+              <div class="cal-wday">TER</div><div class="cal-wday">QUA</div>
+              <div class="cal-wday">QUI</div><div class="cal-wday">SEX</div>
+              <div class="cal-wday">SÁB</div>
+            </div>
+            <div class="cal-days" id="calDays">
+              <div class="empty"><div class="empty-icon">⏳</div><p>Carregando...</p></div>
+            </div>
+          </div>
+          <div class="cal-legend">
+            <div class="leg-item"><div class="leg-dot" style="background:var(--blue)"></div>Agendado</div>
+            <div class="leg-item"><div class="leg-dot" style="background:var(--green)"></div>Compareceu</div>
+            <div class="leg-item"><div class="leg-dot" style="background:var(--red)"></div>Não veio</div>
+            <div class="leg-item"><div class="leg-dot" style="background:var(--amber)"></div>Reagendado</div>
+          </div>
+        </div>
+
+        <!-- Coluna direita: agenda do dia selecionado -->
+        <div>
+          <div class="day-header">
+            <div class="date-display" id="dateDisplay">—</div>
+            <button class="btn-hoje" onclick="irHoje()">Hoje</button>
+          </div>
+          <div class="stats-row">
+            <div class="stat-card"  ><div class="stat-num" id="s-tot" >—</div><div class="stat-lbl">Total</div></div>
+            <div class="stat-card"  ><div class="stat-num" id="s-ag"  >—</div><div class="stat-lbl">Aguardando</div></div>
+            <div class="stat-card g"><div class="stat-num" id="s-ok"  >—</div><div class="stat-lbl">Compareceu</div></div>
+            <div class="stat-card r"><div class="stat-num" id="s-falt">—</div><div class="stat-lbl">Não veio</div></div>
+            <div class="stat-card a"><div class="stat-num" id="s-canc">—</div><div class="stat-lbl">Cancelados</div></div>
+          </div>
+          <div class="sec-header">
+            <div class="sec-title" id="listTitle">Agendamentos do Dia</div>
+            <button class="btn-add" onclick="abrirNovoModal()">+ Novo</button>
+          </div>
+          <div class="ag-list" id="agList">
+            <div class="empty"><div class="empty-icon">⏳</div><p>Carregando...</p></div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ── ABA FINANCEIRO ── -->
+    <div class="tab-pane" id="pane-financeiro">
+      <div class="fin-cards">
+        <div class="fin-card">
+          <div class="fin-card-lbl">💵 Hoje</div>
+          <div class="fin-card-val" id="fin-hoje">—</div>
+          <div class="fin-card-sub" id="fin-hoje-qtd">— atendimentos</div>
+        </div>
+        <div class="fin-card">
+          <div class="fin-card-lbl">📆 Esta semana</div>
+          <div class="fin-card-val" id="fin-semana">—</div>
+          <div class="fin-card-sub">últimos 7 dias</div>
+        </div>
+        <div class="fin-card">
+          <div class="fin-card-lbl">🗓️ Este mês</div>
+          <div class="fin-card-val" id="fin-mes">—</div>
+          <div class="fin-card-sub" id="fin-mes-nome">—</div>
+        </div>
+        <div class="fin-card gold">
+          <div class="fin-card-lbl">✨ Total geral</div>
+          <div class="fin-card-val" id="fin-total">—</div>
+          <div class="fin-card-sub">todos os tempos</div>
+        </div>
+      </div>
+      <div class="fin-row">
+        <div class="chart-box">
+          <div class="chart-title">📈 Receita — Últimos 30 dias</div>
+          <canvas id="chartReceita" height="200"></canvas>
+        </div>
+        <div class="chart-box">
+          <div class="chart-title">💳 Formas de pagamento</div>
+          <div class="pay-methods" id="payMethods"><p style="color:var(--muted);font-size:.85rem">Sem dados ainda.</p></div>
+          <div style="margin-top:24px;">
+            <div class="chart-title">⭐ Serviços mais realizados</div>
+            <div class="top-services" id="topServices"><p style="color:var(--muted);font-size:.85rem">Sem dados ainda.</p></div>
+          </div>
+        </div>
+      </div>
+      <div class="chart-box">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+          <div class="chart-title" style="margin-bottom:0">🧾 Últimos pagamentos registrados</div>
+          <button class="btn-add" onclick="abrirModalVenda()">+ Adicionar Venda</button>
+        </div>
+        <div style="overflow-x:auto;margin-top:0;">
+          <table class="pay-table">
+            <thead><tr><th>Data</th><th>Paciente</th><th>Serviço</th><th>Valor</th><th>Pagamento</th></tr></thead>
+            <tbody id="payTableBody"><tr><td colspan="5" style="text-align:center;color:var(--muted);padding:30px">Sem registros de pagamento ainda.</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── ABA ANAMNESE ── -->
+    <div class="tab-pane" id="pane-anamnese">
+
+      <!-- Cabeçalho visível apenas na impressão -->
+      <div class="print-header">
+        <div class="ph-logo">Instituto Dra Sônia Machado</div>
+        <div class="ph-title">Ficha de Anamnese — Clínica de Estética</div>
+        <div class="ph-meta" id="printDataHoje"></div>
+      </div>
+
+      <!-- Cabeçalho da tela -->
+      <div class="anam-top no-print">
+        <div>
+          <div class="sec-title">📋 Anamnese</div>
+          <p class="anam-sub">Preencha com a paciente antes de qualquer procedimento.</p>
+        </div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap">
+          <button class="btn-sec" onclick="limparAnamnese()">↺ Nova ficha</button>
+          <button class="btn-salvar" onclick="salvarAnamnese()">💾 Salvar ficha</button>
+          <button class="btn-imprimir" onclick="imprimirAnamnese()">🖨️ Imprimir</button>
+        </div>
+      </div>
+
+      <div id="anamForm">
+
+        <!-- 1. Dados Básicos -->
+        <div class="anam-card">
+          <div class="anam-stitle">1. Dados Básicos</div>
+          <div class="anam-grid">
+            <div class="anam-field">
+              <label>Nome completo</label>
+              <input type="text" id="a_nome" placeholder="Nome da paciente">
+            </div>
+            <div class="anam-field">
+              <label>Data de nascimento</label>
+              <input type="date" id="a_nasc">
+            </div>
+            <div class="anam-field">
+              <label>Telefone / WhatsApp</label>
+              <input type="tel" id="a_tel" placeholder="(00) 00000-0000" oninput="maskFone(this)">
+            </div>
+            <div class="anam-field">
+              <label>Procedimento de interesse</label>
+              <input type="text" id="a_proc" placeholder="Ex: Botox, Harmonização Facial...">
+            </div>
+          </div>
+          <div class="anam-field" style="margin-top:14px">
+            <label>Região que deseja tratar</label>
+            <input type="text" id="a_regiao" placeholder="Ex: testa, lábios, papada, abdômen...">
+          </div>
+        </div>
+
+        <!-- 2. Saúde Geral -->
+        <div class="anam-card">
+          <div class="anam-stitle">2. Saúde Geral</div>
+
+          <div class="anam-q">
+            <div class="anam-qlabel">Possui alguma doença ou condição de saúde importante?
+              <span class="anam-hint">Ex: pressão alta, diabetes, doença autoimune, cardíaca, tireoide, trombose</span>
+            </div>
+            <div class="yn-row">
+              <label class="yn"><input type="radio" name="q1" value="nao" onchange="det('d1',false)"><span>Não</span></label>
+              <label class="yn"><input type="radio" name="q1" value="sim" onchange="det('d1',true)"><span>Sim</span></label>
+            </div>
+            <div class="anam-det" id="d1"><input type="text" placeholder="Qual condição?"></div>
+          </div>
+
+          <div class="anam-q">
+            <div class="anam-qlabel">Usa algum medicamento contínuo?</div>
+            <div class="yn-row">
+              <label class="yn"><input type="radio" name="q2" value="nao" onchange="det('d2',false)"><span>Não</span></label>
+              <label class="yn"><input type="radio" name="q2" value="sim" onchange="det('d2',true)"><span>Sim</span></label>
+            </div>
+            <div class="anam-det" id="d2"><input type="text" placeholder="Se sim, qual?"></div>
+          </div>
+
+          <div class="anam-q">
+            <div class="anam-qlabel">Tem alergia a algum medicamento, anestésico, látex ou cosmético?</div>
+            <div class="yn-row">
+              <label class="yn"><input type="radio" name="q3" value="nao" onchange="det('d3',false)"><span>Não</span></label>
+              <label class="yn"><input type="radio" name="q3" value="sim" onchange="det('d3',true)"><span>Sim</span></label>
+            </div>
+            <div class="anam-det" id="d3"><input type="text" placeholder="Se sim, qual?"></div>
+          </div>
+
+          <div class="anam-q">
+            <div class="anam-qlabel">Está grávida, amamentando ou existe possibilidade de gravidez?</div>
+            <div class="yn-row">
+              <label class="yn"><input type="radio" name="q4" value="nao"><span>Não</span></label>
+              <label class="yn"><input type="radio" name="q4" value="sim"><span>Sim</span></label>
+            </div>
+          </div>
+
+          <div class="anam-q" style="margin-bottom:0">
+            <div class="anam-qlabel">Já teve herpes, queloide, cicatrização ruim ou reação em procedimento estético?</div>
+            <div class="yn-row">
+              <label class="yn"><input type="radio" name="q5" value="nao" onchange="det('d5',false)"><span>Não</span></label>
+              <label class="yn"><input type="radio" name="q5" value="sim" onchange="det('d5',true)"><span>Sim</span></label>
+            </div>
+            <div class="anam-det" id="d5"><input type="text" placeholder="Descreva brevemente"></div>
+          </div>
+        </div>
+
+        <!-- 3. Histórico Estético -->
+        <div class="anam-card">
+          <div class="anam-stitle">3. Histórico Estético</div>
+
+          <div class="anam-q">
+            <div class="anam-qlabel">Já fez algum procedimento estético antes?</div>
+            <div class="yn-row">
+              <label class="yn"><input type="radio" name="q6" value="nao" onchange="det('d6',false)"><span>Não</span></label>
+              <label class="yn"><input type="radio" name="q6" value="sim" onchange="det('d6',true)"><span>Sim</span></label>
+            </div>
+            <div class="anam-det" id="d6"><input type="text" placeholder="Qual e quando?"></div>
+          </div>
+
+          <div class="anam-q">
+            <div class="anam-qlabel">Tem algum produto permanente no rosto ou corpo?
+              <span class="anam-hint">Ex: PMMA, silicone líquido ou outro</span>
+            </div>
+            <div class="yn-row">
+              <label class="yn"><input type="radio" name="q7" value="nao" onchange="det('d7',false)"><span>Não</span></label>
+              <label class="yn"><input type="radio" name="q7" value="sim" onchange="det('d7',true)"><span>Sim</span></label>
+            </div>
+            <div class="anam-det" id="d7"><input type="text" placeholder="Qual produto e onde?"></div>
+          </div>
+
+          <div class="anam-q" style="margin-bottom:0">
+            <div class="anam-qlabel">Fez algum procedimento estético, laser, peeling ou cirurgia nos últimos 30 dias?</div>
+            <div class="yn-row">
+              <label class="yn"><input type="radio" name="q8" value="nao"><span>Não</span></label>
+              <label class="yn"><input type="radio" name="q8" value="sim"><span>Sim</span></label>
+            </div>
+          </div>
+        </div>
+
+        <!-- 4. Segurança -->
+        <div class="anam-card">
+          <div class="anam-stitle">4. Segurança antes do Procedimento</div>
+
+          <div class="anam-q">
+            <div class="anam-qlabel">Está com febre, gripe, infecção, ferida ou inflamação no momento?</div>
+            <div class="yn-row">
+              <label class="yn"><input type="radio" name="q9" value="nao"><span>Não</span></label>
+              <label class="yn"><input type="radio" name="q9" value="sim"><span>Sim</span></label>
+            </div>
+          </div>
+
+          <div class="anam-q">
+            <div class="anam-qlabel">Usa anticoagulante, Roacutan, corticoide ou medicamento para emagrecimento?</div>
+            <div class="yn-row">
+              <label class="yn"><input type="radio" name="q10" value="nao"><span>Não</span></label>
+              <label class="yn"><input type="radio" name="q10" value="sim"><span>Sim</span></label>
+            </div>
+          </div>
+
+          <div class="anam-q" style="margin-bottom:0">
+            <div class="anam-qlabel">Tem medo de agulha ou costuma passar mal em procedimentos?</div>
+            <div class="yn-row">
+              <label class="yn"><input type="radio" name="q11" value="nao"><span>Não</span></label>
+              <label class="yn"><input type="radio" name="q11" value="sim"><span>Sim</span></label>
+            </div>
+          </div>
+        </div>
+
+        <!-- 5. Objetivo -->
+        <div class="anam-card">
+          <div class="anam-stitle">5. Objetivo</div>
+          <div class="anam-field" style="margin-bottom:14px">
+            <label>O que mais te incomoda hoje?</label>
+            <textarea id="a_incomoda" rows="2" placeholder="Descreva a queixa principal da paciente..."></textarea>
+          </div>
+          <div class="anam-field" style="margin-bottom:14px">
+            <label>Qual resultado você espera?</label>
+            <textarea id="a_resultado" rows="2" placeholder="Expectativas com o procedimento..."></textarea>
+          </div>
+          <div class="anam-q" style="margin-bottom:0">
+            <div class="anam-qlabel">Prefere um resultado mais natural ou mais marcante?</div>
+            <div class="yn-row">
+              <label class="yn"><input type="radio" name="q12" value="natural"><span>Natural</span></label>
+              <label class="yn"><input type="radio" name="q12" value="marcante"><span>Marcante</span></label>
+            </div>
+          </div>
+        </div>
+
+        <!-- 6. Confirmação -->
+        <div class="anam-card anam-confirm-card">
+          <div class="anam-stitle">6. Confirmação</div>
+          <div class="anam-q">
+            <div class="anam-qlabel anam-qlabel-italic">Declara que as informações acima são verdadeiras e entende que a avaliação profissional é necessária antes de qualquer procedimento?</div>
+            <div class="yn-row">
+              <label class="yn"><input type="radio" name="q_conf" value="sim"><span>✓ Sim, declaro</span></label>
+              <label class="yn"><input type="radio" name="q_conf" value="nao"><span>Não</span></label>
+            </div>
+          </div>
+          <div class="anam-assinatura">
+            <div class="anam-asslin"></div>
+            <p class="anam-assleg">Assinatura da paciente</p>
+          </div>
+        </div>
+
+      </div><!-- #anamForm -->
+
+      <!-- Fichas Salvas -->
+      <div class="fichas-wrap no-print">
+        <div class="fichas-header">
+          <div class="sec-title">📁 Fichas Salvas</div>
+          <input type="text" id="buscaFichas" class="fichas-search-input" placeholder="🔍  Buscar por nome ou telefone..." oninput="buscarFichas(this.value)">
+        </div>
+        <div id="fichasList">
+          <div class="empty"><div class="empty-icon">📂</div><p>Nenhuma ficha salva ainda.<br>Preencha o formulário acima e clique em <strong>Salvar ficha</strong>.</p></div>
+        </div>
+      </div>
+
+    </div>
+
+  </div>
+</div>
+
+<!-- ── MODAL: Marcar como Compareceu ── -->
+<div class="modal-bg" id="modalCompareceu">
+  <div class="modal">
+    <div class="modal-header">
+      <h3>✅ Registrar Atendimento</h3>
+      <button class="modal-close" onclick="fecharModal('modalCompareceu')">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="info-row" id="infoCompareceu"></div>
+      <div class="mfield">
+        <label>Valor cobrado (R$)</label>
+        <div class="input-money"><input type="number" id="cValor" placeholder="0,00" min="0" step="0.01"></div>
+        <div class="hint">Deixe em branco se não quiser registrar o valor agora.</div>
+      </div>
+      <div class="mfield">
+        <label>Forma de pagamento</label>
+        <select id="cForma">
+          <option value="">Selecione...</option>
+          <option value="Pix">Pix</option>
+          <option value="Dinheiro">Dinheiro</option>
+          <option value="Débito">Cartão de Débito</option>
+          <option value="Crédito">Cartão de Crédito (à vista)</option>
+          <option value="Parcelado 2x">Parcelado 2×</option>
+          <option value="Parcelado 3x">Parcelado 3×</option>
+          <option value="Parcelado 4x">Parcelado 4×</option>
+          <option value="Parcelado 6x">Parcelado 6×</option>
+          <option value="Parcelado 12x">Parcelado 12×</option>
+        </select>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="mb-cancel" onclick="fecharModal('modalCompareceu')">Cancelar</button>
+      <button class="mb-confirm" onclick="confirmarCompareceu()">Confirmar Atendimento</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── MODAL: Reagendar ── -->
+<div class="modal-bg" id="modalReag">
+  <div class="modal">
+    <div class="modal-header">
+      <h3>↪ Reagendar Consulta</h3>
+      <button class="modal-close" onclick="fecharModal('modalReag')">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="info-row" id="infoReag"></div>
+      <div class="mfield"><label>Nova data</label><input type="date" id="rData"></div>
+      <div class="mfield">
+        <label>Novo horário</label>
+        <input type="time" id="rHora" min="08:00" max="19:00" step="1800">
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="mb-cancel" onclick="fecharModal('modalReag')">Cancelar</button>
+      <button class="mb-confirm" onclick="confirmarReag()">Confirmar Reagendamento</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── MODAL: Novo Agendamento ── -->
+<div class="modal-bg" id="modalNovo">
+  <div class="modal">
+    <div class="modal-header">
+      <h3>➕ Novo Agendamento</h3>
+      <button class="modal-close" onclick="fecharModal('modalNovo')">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="mfield"><label>Nome da paciente *</label><input type="text" id="nNome" placeholder="Nome completo"></div>
+      <div class="mfield"><label>WhatsApp / Telefone *</label><input type="tel" id="nTel" placeholder="(00) 00000-0000" oninput="maskFone(this)"></div>
+      <div class="mfield">
+        <label>Serviço *</label>
+        <select id="nSvc"><option value="">Selecione o serviço...</option></select>
+      </div>
+      <div class="mfield"><label>Data *</label><input type="date" id="nData"></div>
+      <div class="mfield">
+        <label>Horário *</label>
+        <input type="time" id="nHora" min="08:00" max="19:00" step="1800">
+      </div>
+      <div class="mfield"><label>Observações (opcional)</label><input type="text" id="nObs" placeholder="Alguma informação adicional?"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="mb-cancel" onclick="fecharModal('modalNovo')">Cancelar</button>
+      <button class="mb-confirm" onclick="confirmarNovo()">Criar Agendamento</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── MODAL: Adicionar Venda ── -->
+<div class="modal-bg" id="modalVenda">
+  <div class="modal">
+    <div class="modal-header">
+      <h3>💰 Registrar Venda</h3>
+      <button class="modal-close" onclick="fecharModal('modalVenda')">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="mfield"><label>Data da venda *</label><input type="date" id="vData"></div>
+      <div class="mfield">
+        <label>Serviço realizado</label>
+        <select id="vSvc"><option value="">Selecione o serviço...</option></select>
+      </div>
+      <div class="mfield">
+        <label>Valor recebido (R$) *</label>
+        <div class="input-money"><input type="number" id="vValor" placeholder="0,00" min="0" step="0.01"></div>
+      </div>
+      <div class="mfield">
+        <label>Forma de pagamento</label>
+        <select id="vForma">
+          <option value="">Selecione...</option>
+          <option value="Pix">Pix</option>
+          <option value="Dinheiro">Dinheiro</option>
+          <option value="Débito">Cartão de Débito</option>
+          <option value="Crédito">Cartão de Crédito (à vista)</option>
+          <option value="Parcelado 2x">Parcelado 2×</option>
+          <option value="Parcelado 3x">Parcelado 3×</option>
+          <option value="Parcelado 4x">Parcelado 4×</option>
+          <option value="Parcelado 6x">Parcelado 6×</option>
+          <option value="Parcelado 12x">Parcelado 12×</option>
+        </select>
+      </div>
+      <div class="mfield"><label>Descrição (opcional)</label><textarea id="vDesc" rows="3" placeholder="Informações adicionais sobre esta venda..." style="resize:vertical"></textarea></div>
+    </div>
+    <div class="modal-footer">
+      <button class="mb-cancel" onclick="fecharModal('modalVenda')">Cancelar</button>
+      <button class="mb-confirm" onclick="confirmarVenda()">Registrar Venda</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const MESES=['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro'];
+const SEMANA=['Domingo','Segunda-feira','Terça-feira','Quarta-feira','Quinta-feira','Sexta-feira','Sábado'];
+
+let pwd='', servicos=[];
+let dataAtual = new Date();
+let calAno, calMes;
+let calDados = {};
+let comparecendoId=null, reagendandoId=null;
+let chartReceita=null;
+
+function pad(n){return String(n).padStart(2,'0');}
+function isoData(d){return`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;}
+function fmtMoeda(v){return v==null||v===0?'R$ 0,00':'R$ '+Number(v).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});}
+function fmtData(ds){const[y,m,d]=ds.split('-');return`${+d} de ${MESES[+m-1]} de ${y}`;}
+
+// ── Login ──
+async function entrar(){
+  const s=document.getElementById('loginPwd').value;
+  const r=await fetch(`/api/admin/agendamentos?data=2000-01-01&pwd=${encodeURIComponent(s)}`);
+  if(r.status===401){document.getElementById('loginErr').style.display='block';return;}
+  pwd=s;
+  sessionStorage.setItem('p',s);
+  document.getElementById('loginScreen').style.display='none';
+  document.getElementById('app').style.display='flex';
+  await init();
+}
+function sair(){sessionStorage.removeItem('p');location.reload();}
+
+async function init(){
+  calAno=dataAtual.getFullYear();
+  calMes=dataAtual.getMonth();
+  // Carrega serviços para o modal
+  try{const r=await fetch('/api/servicos');servicos=await r.json();}catch{}
+  ['nSvc','vSvc'].forEach(selId=>{
+    const sel=document.getElementById(selId);
+    servicos.forEach(s=>{
+      const o=document.createElement('option');
+      o.value=s.id; o.textContent=s.nome;
+      sel.appendChild(o);
+    });
+  });
+  // Datas mínimas nos modais (hoje)
+  const hoje=isoData(new Date());
+  document.getElementById('rData').min=hoje;
+  document.getElementById('nData').min=hoje;
+  // Carrega tudo em paralelo
+  await Promise.all([carregarCalendarioMes(), carregarDia()]);
+}
+
+// ── Troca de abas ──
+function showTab(tab){
+  document.querySelectorAll('.tab').forEach(b=>b.classList.toggle('active',b.dataset.tab===tab));
+  document.querySelectorAll('.tab-pane').forEach(p=>p.classList.remove('active'));
+  document.getElementById(`pane-${tab}`).classList.add('active');
+  if(tab==='financeiro') carregarFinanceiro();
+  if(tab==='anamnese') carregarFichas();
+}
+
+// ── Calendário ──
+async function carregarCalendarioMes(){
+  const mesStr=`${calAno}-${pad(calMes+1)}`;
+  document.getElementById('calTitle').textContent=
+    `${MESES[calMes].charAt(0).toUpperCase()+MESES[calMes].slice(1)} de ${calAno}`;
+  try{
+    const r=await fetch(`/api/admin/calendario?mes=${mesStr}`,{headers:{'x-admin-password':pwd}});
+    const data=await r.json();
+    calDados=(data && !data.erro)?data:{};
+  }catch{
+    calDados={};
+  }
+  renderCalendario();
+}
+
+function renderCalendario(){
+  const primeiroDia=new Date(calAno,calMes,1).getDay();
+  const diasNoMes=new Date(calAno,calMes+1,0).getDate();
+  const hojeISO=isoData(new Date());
+  const selISO=isoData(dataAtual);
+  const STATUS_CLS={agendado:'ag',compareceu:'ok',nao_compareceu:'falt',reagendado:'reag'};
+
+  let html='';
+  // Células vazias antes do primeiro dia
+  for(let i=0;i<primeiroDia;i++) html+='<div class="cal-cell cal-empty"></div>';
+
+  for(let d=1;d<=diasNoMes;d++){
+    const ds=`${calAno}-${pad(calMes+1)}-${pad(d)}`;
+    const isHoje=ds===hojeISO;
+    const isSel=ds===selISO;
+    const apts=calDados[ds]||[];
+
+    // Pontos coloridos por status
+    const dotsHtml=apts.slice(0,6).map(a=>{
+      const cls=STATUS_CLS[a.status]||'ag';
+      return`<div class="cal-dot ${cls}"></div>`;
+    }).join('');
+    const extraHtml=apts.length>6?`<div class="cal-extra">+${apts.length-6}</div>`:'';
+
+    // Classes da célula
+    const classes=['cal-cell'];
+    if(isHoje) classes.push('today');
+    if(isSel)  classes.push('selected');
+
+    html+=`<div class="${classes.join(' ')}" onclick="selecionarDia('${ds}')">
+      <div class="cal-day-num">${d}</div>
+      ${dotsHtml?`<div class="cal-dots">${dotsHtml}${extraHtml}</div>`:''}
+    </div>`;
+  }
+  document.getElementById('calDays').innerHTML=html;
+}
+
+function calNav(d){
+  calMes+=d;
+  if(calMes<0){calMes=11;calAno--;}
+  if(calMes>11){calMes=0;calAno++;}
+  carregarCalendarioMes();
+}
+
+async function selecionarDia(ds){
+  const[y,m,d]=ds.split('-');
+  dataAtual=new Date(+y,+m-1,+d);
+  renderCalendario(); // Atualiza seleção imediatamente
+  await carregarDia();
+}
+
+function irHoje(){
+  dataAtual=new Date();
+  calAno=dataAtual.getFullYear();
+  calMes=dataAtual.getMonth();
+  Promise.all([carregarCalendarioMes(), carregarDia()]);
+}
+
+// Recarrega calendário + dia (após ações que mudam dados)
+async function carregarTudo(){
+  await Promise.all([carregarCalendarioMes(), carregarDia()]);
+}
+
+// ── Agenda do dia ──
+async function carregarDia(){
+  const iso=isoData(dataAtual);
+  const dt=dataAtual;
+  document.getElementById('dateDisplay').textContent=
+    `${SEMANA[dt.getDay()]}, ${dt.getDate()} de ${MESES[dt.getMonth()]} de ${dt.getFullYear()}`;
+  document.getElementById('listTitle').textContent=
+    `Agendamentos — ${dt.getDate()} de ${MESES[dt.getMonth()]}`;
+  document.getElementById('agList').innerHTML=
+    '<div class="empty"><div class="empty-icon">⏳</div><p>Carregando...</p></div>';
+
+  const h={'x-admin-password':pwd};
+  const[ra,rs]=await Promise.all([
+    fetch(`/api/admin/agendamentos?data=${iso}`,{headers:h}),
+    fetch(`/api/admin/stats?data=${iso}`,{headers:h}),
+  ]);
+  const ags=await ra.json();
+  const stats=await rs.json();
+
+  document.getElementById('s-tot').textContent=stats.total;
+  document.getElementById('s-ag').textContent=stats.agendados;
+  document.getElementById('s-ok').textContent=stats.compareceu;
+  document.getElementById('s-falt').textContent=stats.faltou;
+  document.getElementById('s-canc').textContent=stats.cancelados;
+
+  renderAgs(ags);
+}
+
+function renderAgs(lista){
+  const el=document.getElementById('agList');
+  if(!lista.length){
+    el.innerHTML='<div class="empty"><div class="empty-icon">📋</div><p>Nenhum agendamento neste dia.<br>Clique em <strong>+ Novo</strong> para adicionar.</p></div>';
+    return;
+  }
+  const BADGE={
+    agendado:      {c:'b-ag',  t:'Agendado'},
+    compareceu:    {c:'b-ok',  t:'Compareceu ✓'},
+    nao_compareceu:{c:'b-falt',t:'Não compareceu ✗'},
+    cancelado:     {c:'b-canc',t:'Cancelado'},
+    reagendado:    {c:'b-reag',t:'Reagendado'},
+  };
+  el.innerHTML=lista.map(a=>{
+    const b=BADGE[a.status]||{c:'b-ag',t:a.status};
+    const acoes=(a.status==='agendado'||a.status==='reagendado')?`
+      <div class="ag-btns">
+        <button class="ab ab-g" onclick="abrirCompareceu(${a.id})">✅ Compareceu</button>
+        <button class="ab ab-r" onclick="atualizar(${a.id},'nao_compareceu')">❌ Não veio</button>
+        <button class="ab ab-a" onclick="abrirReag(${a.id})">↪ Reagendar</button>
+        <button class="ab ab-x" onclick="cancelar(${a.id})">Cancelar</button>
+      </div>`:
+      (a.valor?`<div class="ag-btns"><span style="font-size:.82rem;color:var(--green);font-weight:600">${fmtMoeda(a.valor)} — ${a.forma_pagamento||'—'}</span></div>`:'');
+    return`<div class="ag-card" id="ag-${a.id}">
+      <div class="ag-time">${a.horario}</div>
+      <div class="ag-body">
+        <div class="ag-name">${a.nome_paciente}</div>
+        <div class="ag-sub">${a.servico_nome}</div>
+        <div class="ag-phone">📱 ${a.telefone_paciente}</div>
+        ${a.observacoes?`<div class="ag-obs">📝 ${a.observacoes}</div>`:''}
+      </div>
+      <div class="ag-right">
+        <span class="badge ${b.c}">${b.t}</span>
+        ${acoes}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ── Ações ──
+async function atualizar(id,status){
+  await fetch(`/api/admin/agendamentos/${id}`,{
+    method:'PUT',
+    headers:{'Content-Type':'application/json','x-admin-password':pwd},
+    body:JSON.stringify({status}),
+  });
+  toast('Status atualizado!','ok');
+  carregarTudo();
+}
+
+async function cancelar(id){
+  if(!confirm('Cancelar este agendamento?'))return;
+  await fetch(`/api/admin/agendamentos/${id}`,{method:'DELETE',headers:{'x-admin-password':pwd}});
+  toast('Agendamento cancelado.','ok');
+  carregarTudo();
+}
+
+// ── Modal Compareceu ──
+function abrirCompareceu(id){
+  comparecendoId=id;
+  const nome=document.querySelector(`#ag-${id} .ag-name`)?.textContent||'';
+  const svc=document.querySelector(`#ag-${id} .ag-sub`)?.textContent||'';
+  document.getElementById('infoCompareceu').innerHTML=`<strong>${nome}</strong><br>${svc}`;
+  document.getElementById('cValor').value='';
+  document.getElementById('cForma').value='';
+  document.getElementById('modalCompareceu').classList.add('open');
+}
+async function confirmarCompareceu(){
+  const valor=parseFloat(document.getElementById('cValor').value)||null;
+  const forma=document.getElementById('cForma').value||null;
+  await fetch(`/api/admin/agendamentos/${comparecendoId}`,{
+    method:'PUT',
+    headers:{'Content-Type':'application/json','x-admin-password':pwd},
+    body:JSON.stringify({status:'compareceu',valor,forma_pagamento:forma}),
+  });
+  fecharModal('modalCompareceu');
+  toast('Atendimento registrado! ✨','ok');
+  carregarTudo();
+}
+
+// ── Modal Reagendar ──
+function abrirReag(id){
+  reagendandoId=id;
+  const nome=document.querySelector(`#ag-${id} .ag-name`)?.textContent||'';
+  const svc=document.querySelector(`#ag-${id} .ag-sub`)?.textContent||'';
+  document.getElementById('infoReag').innerHTML=`<strong>${nome}</strong><br>${svc}`;
+  document.getElementById('rData').value='';
+  document.getElementById('rHora').value='';
+  document.getElementById('modalReag').classList.add('open');
+}
+async function confirmarReag(){
+  const data=document.getElementById('rData').value;
+  const hora=document.getElementById('rHora').value;
+  if(!data||!hora){toast('Preencha data e horário.','err');return;}
+  const r=await fetch(`/api/admin/agendamentos/${reagendandoId}`,{
+    method:'PUT',
+    headers:{'Content-Type':'application/json','x-admin-password':pwd},
+    body:JSON.stringify({status:'reagendado',data_agendamento:data,horario:hora}),
+  });
+  if(!r.ok){const e=await r.json();toast(e.erro,'err');return;}
+  fecharModal('modalReag');
+  toast('Reagendado com sucesso! ↪','ok');
+  carregarTudo();
+}
+
+// ── Modal Novo Agendamento ──
+function abrirNovoModal(){
+  ['nNome','nTel','nObs'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('nData').value='';
+  document.getElementById('nSvc').value='';
+  document.getElementById('nHora').value='';
+  document.getElementById('modalNovo').classList.add('open');
+}
+async function confirmarNovo(){
+  const nome=document.getElementById('nNome').value.trim();
+  const tel=document.getElementById('nTel').value;
+  const svc=document.getElementById('nSvc').value;
+  const data=document.getElementById('nData').value;
+  const hora=document.getElementById('nHora').value;
+  if(!nome||!tel||!svc||!data||!hora){toast('Preencha todos os campos obrigatórios.','err');return;}
+  const r=await fetch('/api/agendamentos',{
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({
+      servico_id:+svc,nome_paciente:nome,telefone_paciente:tel,
+      data_agendamento:data,horario:hora,
+      observacoes:document.getElementById('nObs').value.trim()||null,
+    }),
+  });
+  if(!r.ok){const e=await r.json();toast(e.erro,'err');return;}
+  fecharModal('modalNovo');
+  toast('Agendamento criado! ✅','ok');
+  // Navega para o dia criado
+  const[y,m,d]=data.split('-');
+  dataAtual=new Date(+y,+m-1,+d);
+  calAno=dataAtual.getFullYear();
+  calMes=dataAtual.getMonth();
+  await carregarTudo();
+}
+
+// ── Modal Adicionar Venda ──
+function abrirModalVenda(){
+  document.getElementById('vData').value=isoData(new Date());
+  document.getElementById('vSvc').value='';
+  document.getElementById('vValor').value='';
+  document.getElementById('vForma').value='';
+  document.getElementById('vDesc').value='';
+  document.getElementById('modalVenda').classList.add('open');
+}
+async function confirmarVenda(){
+  const data=document.getElementById('vData').value;
+  const svc=document.getElementById('vSvc').value;
+  const valor=parseFloat(document.getElementById('vValor').value);
+  const forma=document.getElementById('vForma').value;
+  const desc=document.getElementById('vDesc').value.trim();
+  if(!data){toast('Informe a data da venda.','err');return;}
+  if(!valor||valor<=0){toast('Informe o valor da venda.','err');return;}
+  const r=await fetch('/api/admin/vendas',{
+    method:'POST',
+    headers:{'Content-Type':'application/json','x-admin-password':pwd},
+    body:JSON.stringify({data,servico_id:svc||null,valor,forma_pagamento:forma||null,descricao:desc||null}),
+  });
+  if(!r.ok){const e=await r.json();toast(e.erro,'err');return;}
+  fecharModal('modalVenda');
+  toast('Venda registrada! 💰','ok');
+  carregarFinanceiro();
+}
+
+// ── Aba Financeiro ──
+async function carregarFinanceiro(){
+  const r=await fetch('/api/admin/financeiro',{headers:{'x-admin-password':pwd}});
+  const d=await r.json();
+
+  document.getElementById('fin-hoje').textContent=fmtMoeda(d.total_hoje);
+  document.getElementById('fin-semana').textContent=fmtMoeda(d.total_semana);
+  document.getElementById('fin-mes').textContent=fmtMoeda(d.total_mes);
+  document.getElementById('fin-total').textContent=fmtMoeda(d.total_geral);
+  document.getElementById('fin-mes-nome').textContent=MESES[new Date().getMonth()];
+
+  const hoje=isoData(new Date());
+  const qtdHoje=(d.lista||[]).filter(a=>a.data_agendamento===hoje).length;
+  document.getElementById('fin-hoje-qtd').textContent=`${qtdHoje} atendimento${qtdHoje!==1?'s':''}`;
+
+  const labels=Object.keys(d.porDia||{}).map(ds=>{const[,m,dd]=ds.split('-');return`${+dd}/${+m}`;});
+  const vals=Object.values(d.porDia||{});
+  if(chartReceita)chartReceita.destroy();
+  chartReceita=new Chart(document.getElementById('chartReceita'),{
+    type:'bar',
+    data:{
+      labels,
+      datasets:[{
+        label:'Receita (R$)',data:vals,
+        backgroundColor:'rgba(184,92,114,0.22)',
+        borderColor:'rgba(184,92,114,1)',
+        borderWidth:2,borderRadius:6,
+      }],
+    },
+    options:{
+      responsive:true,maintainAspectRatio:true,
+      plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>' '+fmtMoeda(ctx.raw)}}},
+      scales:{
+        y:{ticks:{callback:v=>v===0?'R$ 0':'R$ '+v.toLocaleString('pt-BR')},grid:{color:'rgba(0,0,0,.05)'}},
+        x:{grid:{display:false}},
+      },
+    },
+  });
+
+  const pm=document.getElementById('payMethods');
+  const totalPag=Object.values(d.porForma||{}).reduce((s,v)=>s+v,0)||1;
+  if(!Object.keys(d.porForma||{}).length){
+    pm.innerHTML='<p style="color:var(--muted);font-size:.85rem">Nenhum pagamento registrado ainda.</p>';
+  } else {
+    pm.innerHTML=Object.entries(d.porForma).sort((a,b)=>b[1]-a[1]).map(([k,v])=>`
+      <div class="pay-row">
+        <div class="pay-lbl">${k}</div>
+        <div class="pay-bar-wrap"><div class="pay-bar" style="width:${Math.round(v/totalPag*100)}%"></div></div>
+        <div class="pay-val">${fmtMoeda(v)}</div>
+      </div>`).join('');
+  }
+
+  const ts=document.getElementById('topServices');
+  if(!(d.topServicos||[]).length){
+    ts.innerHTML='<p style="color:var(--muted);font-size:.85rem">Sem dados ainda.</p>';
+  } else {
+    ts.innerHTML=d.topServicos.map(s=>`
+      <div class="ts-row"><div class="ts-name">${s.nome}</div><span class="ts-count">${s.qtd}×</span></div>`
+    ).join('');
+  }
+
+  const tbody=document.getElementById('payTableBody');
+  if(!(d.lista||[]).length){
+    tbody.innerHTML='<tr><td colspan="5" style="text-align:center;color:var(--muted);padding:30px">Sem registros ainda.</td></tr>';
+  } else {
+    tbody.innerHTML=d.lista.map(a=>{
+      const isManual=a.tipo==='venda_manual';
+      const pacienteCell=isManual
+        ?`<span style="color:var(--muted);font-style:italic">${a.descricao||'—'}</span> <span style="font-size:.68rem;background:#FFF5E0;color:var(--amber);padding:2px 7px;border-radius:8px;font-weight:600;white-space:nowrap">venda direta</span>`
+        :a.nome_paciente;
+      return`<tr ${isManual?'style="background:#FFFEF5"':''}>
+        <td>${fmtData(a.data_agendamento)}</td>
+        <td>${pacienteCell}</td>
+        <td>${a.servico_nome}</td>
+        <td class="valor-cell">${fmtMoeda(a.valor)}</td>
+        <td><span class="forma-badge">${a.forma_pagamento||'—'}</span></td>
+      </tr>`;
+    }).join('');
+  }
+}
+
+// ── Aba Anamnese ──
+function det(id,show){
+  document.getElementById(id).style.display=show?'block':'none';
+}
+
+function _limparAnamSilent(){
+  document.querySelectorAll('#anamForm input[type=text],#anamForm input[type=tel],#anamForm input[type=date],#anamForm textarea').forEach(el=>el.value='');
+  document.querySelectorAll('#anamForm input[type=radio]').forEach(el=>el.checked=false);
+  document.querySelectorAll('.anam-det').forEach(el=>el.style.display='none');
+}
+function limparAnamnese(){
+  if(!confirm('Limpar a ficha para nova paciente?'))return;
+  _limparAnamSilent();
+}
+function imprimirAnamnese(){
+  const d=new Date();
+  document.getElementById('printDataHoje').textContent=
+    `Data: ${pad(d.getDate())}/${pad(d.getMonth()+1)}/${d.getFullYear()}`;
+  window.print();
+}
+
+function _coletarAnamnese(){
+  const v=id=>document.getElementById(id)?.value||'';
+  const r=name=>document.querySelector(`input[name="${name}"]:checked`)?.value||'';
+  const dv=id=>document.querySelector(`#${id} input`)?.value||'';
+  return{
+    nome:v('a_nome'),nascimento:v('a_nasc'),telefone:v('a_tel'),
+    procedimento:v('a_proc'),regiao:v('a_regiao'),
+    q1:r('q1'),q1_det:dv('d1'),
+    q2:r('q2'),q2_det:dv('d2'),
+    q3:r('q3'),q3_det:dv('d3'),
+    q4:r('q4'),
+    q5:r('q5'),q5_det:dv('d5'),
+    q6:r('q6'),q6_det:dv('d6'),
+    q7:r('q7'),q7_det:dv('d7'),
+    q8:r('q8'),q9:r('q9'),q10:r('q10'),q11:r('q11'),q12:r('q12'),
+    q_conf:r('q_conf'),
+    incomoda:v('a_incomoda'),resultado:v('a_resultado'),
+  };
+}
+async function salvarAnamnese(){
+  const dados=_coletarAnamnese();
+  if(!dados.nome.trim()){toast('Informe o nome da paciente antes de salvar.','err');return;}
+  const r=await fetch('/api/admin/anamneses',{
+    method:'POST',
+    headers:{'Content-Type':'application/json','x-admin-password':pwd},
+    body:JSON.stringify(dados),
+  });
+  if(!r.ok){toast('Erro ao salvar ficha.','err');return;}
+  toast('Ficha salva com sucesso! ✅','ok');
+  carregarFichas();
+}
+
+let _fichas=[];
+async function carregarFichas(){
+  try{
+    const r=await fetch('/api/admin/anamneses',{headers:{'x-admin-password':pwd}});
+    _fichas=await r.json();
+  }catch{_fichas=[];}
+  renderFichas(_fichas);
+}
+function buscarFichas(q){
+  if(!q||q.length<2){renderFichas(_fichas);return;}
+  const t=q.toLowerCase();
+  renderFichas(_fichas.filter(f=>
+    (f.nome||'').toLowerCase().includes(t)||
+    (f.telefone||'').replace(/\D/g,'').includes(t.replace(/\D/g,''))
+  ));
+}
+function renderFichas(lista){
+  const el=document.getElementById('fichasList');
+  if(!lista.length){
+    el.innerHTML='<div class="empty"><div class="empty-icon">📂</div><p>Nenhuma ficha encontrada.</p></div>';
+    return;
+  }
+  el.innerHTML=lista.map(f=>{
+    const data=f.criado_em?.slice(0,10)||'';
+    const [y,m,d]=data.split('-');
+    const dataFmt=data?`${+d}/${+m}/${y}`:'—';
+    const meta=[f.procedimento,f.regiao,dataFmt].filter(Boolean).join(' · ');
+    return`<div class="ficha-card">
+      <div>
+        <div class="ficha-nome">${f.nome||'Sem nome'}</div>
+        <div class="ficha-meta">${meta}</div>
+      </div>
+      <div class="ficha-btns">
+        <button class="ab ab-g" onclick="abrirFicha('${f.id}')">📋 Ver / Imprimir</button>
+        <button class="ab ab-x" onclick="excluirFicha('${f.id}')">🗑 Excluir</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+function abrirFicha(id){
+  const f=_fichas.find(f=>f.id===id);
+  if(!f)return;
+  _preencherAnamnese(f);
+  window.scrollTo({top:0,behavior:'smooth'});
+  toast('Ficha carregada — revise e clique em Imprimir quando quiser.','ok');
+}
+async function excluirFicha(id){
+  if(!confirm('Excluir esta ficha permanentemente?'))return;
+  await fetch(`/api/admin/anamneses/${id}`,{method:'DELETE',headers:{'x-admin-password':pwd}});
+  toast('Ficha excluída.','ok');
+  carregarFichas();
+}
+function _preencherAnamnese(f){
+  _limparAnamSilent();
+  const set=(id,val)=>{const el=document.getElementById(id);if(el)el.value=val||'';};
+  const radio=(name,val)=>{
+    if(!val)return;
+    const el=document.querySelector(`input[name="${name}"][value="${val}"]`);
+    if(el)el.checked=true;
+  };
+  const setDet=(id,val)=>{
+    const el=document.querySelector(`#${id} input`);
+    if(el)el.value=val||'';
+    if(val)det(id,true);
+  };
+  set('a_nome',f.nome);set('a_nasc',f.nascimento);set('a_tel',f.telefone);
+  set('a_proc',f.procedimento);set('a_regiao',f.regiao);
+  radio('q1',f.q1);if(f.q1==='sim')setDet('d1',f.q1_det);
+  radio('q2',f.q2);if(f.q2==='sim')setDet('d2',f.q2_det);
+  radio('q3',f.q3);if(f.q3==='sim')setDet('d3',f.q3_det);
+  radio('q4',f.q4);
+  radio('q5',f.q5);if(f.q5==='sim')setDet('d5',f.q5_det);
+  radio('q6',f.q6);if(f.q6==='sim')setDet('d6',f.q6_det);
+  radio('q7',f.q7);if(f.q7==='sim')setDet('d7',f.q7_det);
+  radio('q8',f.q8);radio('q9',f.q9);radio('q10',f.q10);radio('q11',f.q11);
+  radio('q12',f.q12);radio('q_conf',f.q_conf);
+  set('a_incomoda',f.incomoda);set('a_resultado',f.resultado);
+}
+
+// ── Helpers ──
+function fecharModal(id){document.getElementById(id).classList.remove('open');}
+document.querySelectorAll('.modal-bg').forEach(el=>
+  el.addEventListener('click',function(e){if(e.target===this)this.classList.remove('open');})
+);
+function maskFone(el){
+  let v=el.value.replace(/\D/g,'').slice(0,11);
+  if(v.length>6)      v=`(${v.slice(0,2)}) ${v.slice(2,7)}-${v.slice(7)}`;
+  else if(v.length>2) v=`(${v.slice(0,2)}) ${v.slice(2)}`;
+  else if(v.length)   v=`(${v}`;
+  el.value=v;
+}
+function toast(msg,type='ok'){
+  const el=document.getElementById('toast');
+  el.textContent=msg;
+  el.className=`toast ${type} show`;
+  setTimeout(()=>el.classList.remove('show'),3000);
+}
+
+// ── Auto-login via sessionStorage ──
+window.addEventListener('load',()=>{
+  const s=sessionStorage.getItem('p');
+  if(s){document.getElementById('loginPwd').value=s;entrar();}
+});
+</script>
+</body>
+</html>

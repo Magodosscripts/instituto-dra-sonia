@@ -1,0 +1,255 @@
+{
+  "proximoId": 7,
+  "agendamentos": [
+    {
+      "id": 1,
+      "servico_id": 11,
+      "servico_nome": "Preenchimento Labial",
+      "nome_paciente": "qwreqwwr",
+      "telefone_paciente": "(12) 32121-3444",
+      "data_agendamento": "1999-12-12",
+      "horario": "17:00",
+      "status": "compareceu",
+      "observacoes": "12341234",
+      "criado_em": "2026-05-03 16:55:41"
+    },
+    {
+      "id": 2,
+      "servico_id": 16,
+      "servico_nome": "Rinomodelação",
+      "nome_paciente": "qwreqwwr",
+      "telefone_paciente": "(12) 32121-3444",
+      "data_agendamento": "2026-05-18",
+      "horario": "18:00",
+      "status": "compareceu",
+      "observacoes": "12341234",
+      "criado_em": "2026-05-03 17:48:23",
+      "valor": null,
+      "forma_pagamento": null
+    },
+    {
+      "id": 3,
+      "servico_id": 17,
+      "servico_nome": "Secagem de Microvasos",
+      "nome_paciente": "qwqdqwd",
+      "telefone_paciente": "(21) 33123-1231",
+      "data_agendamento": "2000-12-12",
+      "horario": "18:00",
+      "status": "agendado",
+      "observacoes": "aq",
+      "criado_em": "2026-05-03 18:06:07"
+    },
+    {
+      "id": 4,
+      "servico_id": 16,
+      "servico_nome": "Rinomodelação",
+      "nome_paciente": "qwqdqwd",
+      "telefone_paciente": "(21) 33123-1231",
+      "data_agendamento": "2026-05-04",
+      "horario": "19:00",
+      "status": "cancelado",
+      "observacoes": "aq",
+      "criado_em": "2026-05-03 18:06:38"
+    },
+    {
+      "id": 5,
+      "servico_id": 17,
+      "servico_nome": "Secagem de Microvasos",
+      "nome_paciente": "qwqdqwd",
+      "telefone_paciente": "(21) 33123-1231",
+      "data_agendamento": "2026-05-05",
+      "horario": "09:00",
+      "status": "cancelado",
+      "observacoes": "velha",
+      "valor": null,
+      "forma_pagamento": null,
+      "criado_em": "2026-05-04 02:40:51"
+    },
+    {
+      "id": 6,
+      "servico_id": 17,
+      "servico_nome": "Secagem de Microvasos",
+      "nome_paciente": "rafaela",
+      "telefone_paciente": "(21) 33123-1231",
+      "data_agendamento": "2026-05-04",
+      "horario": "09:00",
+      "status": "agendado",
+      "observacoes": "Velha gaga, jorgina",
+      "valor": null,
+      "forma_pagamento": null,
+      "criado_em": "2026-05-04 02:41:53"
+    }
+  ],
+  "servicos": [
+    {
+      "id": 1,
+      "nome": "Bioestimuladores de Colágeno",
+      "preco_min": null,
+      "preco_max": null
+    },
+    {
+      "id": 2,
+      "nome": "Botox",
+      "preco_min": null,
+      "preco_max": null
+    },
+    {
+      "id": 3,
+      "nome": "Enzimas Emagrecedoras",
+      "preco_min": null,
+      "preco_max": null
+    },
+    {
+      "id": 4,
+      "nome": "Fios de PDO",
+      "preco_min": null,
+      "preco_max": null
+    },
+    {
+      "id": 5,
+      "nome": "Harmonização Facial",
+      "preco_min": 1000,
+      "preco_max": 4000
+    },
+    {
+      "id": 6,
+      "nome": "Harmonização de Glúteos e Abdômen",
+      "preco_min": 1000,
+      "preco_max": 5000
+    },
+    {
+      "id": 7,
+      "nome": "Limpeza de Pele",
+      "preco_min": null,
+      "preco_max": null
+    },
+    {
+      "id": 8,
+      "nome": "Lipo de Papada",
+      "preco_min": null,
+      "preco_max": null
+    },
+    {
+      "id": 9,
+      "nome": "PDRN de Salmão",
+      "preco_min": null,
+      "preco_max": null
+    },
+    {
+      "id": 10,
+      "nome": "Peelings Químicos Exclusivos",
+      "preco_min": null,
+      "preco_max": null
+    },
+    {
+      "id": 11,
+      "nome": "Preenchimento Labial",
+      "preco_min": null,
+      "preco_max": null
+    },
+    {
+      "id": 12,
+      "nome": "Preenchimento Mandíbula",
+      "preco_min": null,
+      "preco_max": null
+    },
+    {
+      "id": 13,
+      "nome": "Preenchimento Mento",
+      "preco_min": null,
+      "preco_max": null
+    },
+    {
+      "id": 14,
+      "nome": "Protocolo Sculpt Power",
+      "preco_min": null,
+      "preco_max": null
+    },
+    {
+      "id": 15,
+      "nome": "Rejuvenescimento Íntimo Feminino",
+      "preco_min": null,
+      "preco_max": null
+    },
+    {
+      "id": 16,
+      "nome": "Rinomodelação",
+      "preco_min": null,
+      "preco_max": null
+    },
+    {
+      "id": 17,
+      "nome": "Secagem de Microvasos",
+      "preco_min": null,
+      "preco_max": null
+    },
+    {
+      "id": 18,
+      "nome": "Skinbooster para Rejuvenescimento Facial",
+      "preco_min": null,
+      "preco_max": null
+    },
+    {
+      "id": 19,
+      "nome": "Tratamento Exclusivo para Lipedema",
+      "preco_min": null,
+      "preco_max": null
+    }
+  ],
+  "vendas": [
+    {
+      "id": "v1777856598326",
+      "tipo": "venda_manual",
+      "data_agendamento": "2026-05-03",
+      "servico_id": 4,
+      "servico_nome": "Fios de PDO",
+      "descricao": null,
+      "valor": 12000,
+      "forma_pagamento": "Pix",
+      "criado_em": "2026-05-04 01:03:18"
+    },
+    {
+      "id": "v1777856635364",
+      "tipo": "venda_manual",
+      "data_agendamento": "2026-05-03",
+      "servico_id": 12,
+      "servico_nome": "Preenchimento Mandíbula",
+      "descricao": null,
+      "valor": 21321,
+      "forma_pagamento": "Dinheiro",
+      "criado_em": "2026-05-04 01:03:55"
+    }
+  ],
+  "anamneses": [
+    {
+      "id": "f1777860721073",
+      "criado_em": "2026-05-04 02:12:01",
+      "nome": "gabreil sousa",
+      "nascimento": "2026-12-12",
+      "telefone": "(67) 64365-43",
+      "procedimento": "",
+      "regiao": "34535",
+      "q1": "sim",
+      "q1_det": "",
+      "q2": "nao",
+      "q2_det": "",
+      "q3": "sim",
+      "q3_det": "",
+      "q4": "nao",
+      "q5": "sim",
+      "q5_det": "",
+      "q6": "sim",
+      "q6_det": "",
+      "q7": "nao",
+      "q7_det": "",
+      "q8": "sim",
+      "q9": "nao",
+      "q10": "sim",
+      "q11": "nao",
+      "q12": "",
+      "q_conf": "",
+      "incomoda": "",
+      "resultado": ""
+    }
+  ]
+}

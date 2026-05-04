@@ -1,0 +1,614 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Agendamento — Instituto Dra Sônia Machado</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --p:#B85C72;--pl:#D4839A;--pd:#8E3A53;
+  --gold:#C9A96E;--dark:#1C0F14;
+  --bg:#FDF9F7;--white:#fff;
+  --gray:#F5EFED;--border:#EAD8DC;
+  --text:#3A2028;--muted:#9A7880;
+  --shadow:0 8px 40px rgba(184,92,114,.12);
+  --r:16px;
+}
+html{scroll-behavior:smooth}
+body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
+
+/* ── HERO ── */
+.hero{
+  background:linear-gradient(150deg,#1A0B12 0%,#4A1A2E 45%,#8E3A53 100%);
+  padding:52px 20px 100px;text-align:center;position:relative;overflow:hidden;
+}
+.hero::before{
+  content:'';position:absolute;inset:0;
+  background:url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.03'%3E%3Ccircle cx='30' cy='30' r='2'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+}
+.hero-badge{
+  display:inline-block;border:1px solid rgba(201,169,110,.5);
+  color:var(--gold);font-size:.72rem;letter-spacing:3px;text-transform:uppercase;
+  padding:6px 20px;border-radius:30px;margin-bottom:24px;position:relative;
+}
+.hero h1{
+  font-family:'Cormorant Garamond',serif;font-size:clamp(2rem,5vw,3.2rem);
+  color:#fff;font-weight:600;letter-spacing:1px;line-height:1.15;position:relative;
+}
+.hero-sub{
+  color:rgba(255,255,255,.6);font-size:.85rem;letter-spacing:2px;
+  text-transform:uppercase;margin-top:12px;position:relative;
+}
+.hero-addr{
+  color:rgba(255,255,255,.45);font-size:.82rem;margin-top:10px;position:relative;
+}
+.hero-divider{
+  width:60px;height:1px;background:var(--gold);margin:20px auto;opacity:.6;
+}
+
+/* ── BOOKING WRAP ── */
+.booking-wrap{
+  max-width:780px;margin:-60px auto 0;padding:0 16px 80px;position:relative;z-index:1;
+}
+.booking-card{
+  background:var(--white);border-radius:24px;
+  box-shadow:var(--shadow);border:1px solid var(--border);overflow:hidden;
+}
+
+/* ── STEPS BAR ── */
+.steps-bar{
+  display:flex;align-items:center;justify-content:center;
+  padding:28px 24px 0;gap:0;
+}
+.step-item{display:flex;flex-direction:column;align-items:center;position:relative;flex:1;}
+.step-item:not(:last-child)::after{
+  content:'';position:absolute;top:18px;left:calc(50% + 20px);
+  right:calc(-50% + 20px);height:2px;background:var(--border);z-index:0;
+}
+.step-item.done:not(:last-child)::after{background:var(--p);}
+.step-num{
+  width:36px;height:36px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  font-size:.8rem;font-weight:700;z-index:1;position:relative;
+  background:var(--gray);color:var(--muted);border:2px solid var(--border);
+  transition:all .3s;
+}
+.step-item.active .step-num{background:var(--p);color:#fff;border-color:var(--p);box-shadow:0 0 0 5px rgba(184,92,114,.15);}
+.step-item.done  .step-num{background:var(--p);color:#fff;border-color:var(--p);}
+.step-lbl{font-size:.68rem;color:var(--muted);margin-top:7px;letter-spacing:.3px;}
+.step-item.active .step-lbl{color:var(--p);font-weight:600;}
+
+/* ── STEP CONTENT ── */
+.step-body{display:none;padding:32px 32px 36px;animation:fadeUp .35s ease both;}
+.step-body.active{display:block;}
+@keyframes fadeUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+
+.sec-title{font-family:'Cormorant Garamond',serif;font-size:1.6rem;color:var(--dark);margin-bottom:4px;}
+.sec-sub{font-size:.88rem;color:var(--muted);margin-bottom:28px;}
+
+/* ── CATEGORY TABS ── */
+.cat-tabs{display:flex;gap:8px;margin-bottom:22px;flex-wrap:wrap;}
+.cat-btn{
+  padding:8px 18px;border-radius:30px;border:1.5px solid var(--border);
+  background:var(--white);font-size:.82rem;font-weight:500;
+  color:var(--muted);cursor:pointer;transition:all .2s;font-family:'Inter',sans-serif;
+}
+.cat-btn:hover{border-color:var(--pl);color:var(--p);}
+.cat-btn.active{background:var(--p);border-color:var(--p);color:#fff;}
+
+/* ── SERVICE GRID ── */
+.svc-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(175px,1fr));gap:10px;}
+.svc-card{
+  border:1.5px solid var(--border);border-radius:12px;padding:16px 14px;
+  cursor:pointer;transition:all .2s;background:var(--white);
+  display:flex;flex-direction:column;gap:6px;
+}
+.svc-card:hover{border-color:var(--pl);background:#FDF5F7;transform:translateY(-2px);}
+.svc-card.sel{border-color:var(--p);background:linear-gradient(135deg,#FFF0F3,#FFF8FA);}
+.svc-card.sel .svc-icon{transform:scale(1.1);}
+.svc-icon{font-size:1.5rem;line-height:1;}
+.svc-name{font-size:.85rem;font-weight:500;color:var(--dark);line-height:1.3;}
+.svc-price{font-size:.75rem;color:var(--gold);font-weight:600;}
+
+/* ── CALENDAR ── */
+.cal-wrap{max-width:380px;margin:0 auto;}
+.cal-header{
+  display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;
+}
+.cal-title{font-family:'Cormorant Garamond',serif;font-size:1.3rem;color:var(--dark);font-weight:600;}
+.cal-nav{
+  width:36px;height:36px;border-radius:50%;border:1.5px solid var(--border);
+  background:var(--white);cursor:pointer;font-size:1.1rem;color:var(--muted);
+  display:flex;align-items:center;justify-content:center;transition:all .2s;
+}
+.cal-nav:hover{border-color:var(--p);color:var(--p);}
+.cal-weekdays{display:grid;grid-template-columns:repeat(7,1fr);gap:2px;margin-bottom:4px;}
+.cal-wday{text-align:center;font-size:.7rem;font-weight:600;color:var(--muted);padding:4px 0;letter-spacing:.5px;}
+.cal-days{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;}
+.cal-day{
+  aspect-ratio:1;display:flex;align-items:center;justify-content:center;
+  border-radius:50%;font-size:.85rem;cursor:pointer;transition:all .18s;position:relative;
+}
+.cal-day.vazio{cursor:default;}
+.cal-day.passado{color:var(--border);cursor:default;}
+.cal-day.disponivel:hover{background:rgba(184,92,114,.12);color:var(--p);font-weight:600;}
+.cal-day.hoje{color:var(--p);font-weight:700;}
+.cal-day.hoje::after{
+  content:'';position:absolute;bottom:4px;left:50%;transform:translateX(-50%);
+  width:4px;height:4px;border-radius:50%;background:var(--p);
+}
+.cal-day.sel{background:var(--p);color:#fff!important;font-weight:700;box-shadow:0 2px 10px rgba(184,92,114,.35);}
+.cal-day.lotado{color:var(--border);cursor:not-allowed;}
+
+/* ── TIME SLOTS ── */
+.time-label{font-size:.9rem;color:var(--muted);margin-bottom:16px;}
+.time-label strong{color:var(--dark);}
+.time-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(82px,1fr));gap:10px;}
+.t-btn{
+  padding:13px 8px;border:1.5px solid var(--border);border-radius:10px;
+  background:var(--white);font-size:.92rem;font-weight:500;color:var(--text);
+  cursor:pointer;transition:all .18s;font-family:'Inter',sans-serif;
+}
+.t-btn:hover:not(:disabled){border-color:var(--pl);background:#FDF5F7;color:var(--p);}
+.t-btn.sel{border-color:var(--p);background:var(--p);color:#fff;box-shadow:0 4px 14px rgba(184,92,114,.3);}
+.t-btn:disabled{background:var(--gray);color:var(--border);cursor:not-allowed;text-decoration:line-through;}
+
+/* ── FORM ── */
+.booking-summary{
+  background:linear-gradient(135deg,#FFF5F7,#FDF0F2);
+  border:1px solid #F0C0CC;border-radius:14px;padding:20px 22px;margin-bottom:26px;
+}
+.summary-head{
+  display:flex;align-items:center;gap:8px;
+  font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;
+  color:var(--p);margin-bottom:14px;
+}
+.summary-row{display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid rgba(184,92,114,.12);}
+.summary-row:last-child{border:none;}
+.sum-k{font-size:.83rem;color:var(--muted);}
+.sum-v{font-size:.87rem;font-weight:500;color:var(--dark);text-align:right;max-width:62%;}
+
+.field{margin-bottom:20px;}
+.field label{display:block;font-size:.78rem;font-weight:600;text-transform:uppercase;letter-spacing:.6px;color:var(--text);margin-bottom:8px;}
+.field input,.field textarea{
+  width:100%;padding:13px 16px;border:1.5px solid var(--border);border-radius:10px;
+  font-size:.96rem;font-family:'Inter',sans-serif;color:var(--text);background:var(--white);
+  transition:border-color .2s;
+}
+.field input:focus,.field textarea:focus{outline:none;border-color:var(--p);}
+
+.policy{
+  background:#FFFBF0;border:1px solid #F0D080;border-radius:12px;
+  padding:16px 18px;margin:22px 0;
+}
+.policy p{font-size:.83rem;color:#8B6914;line-height:1.65;}
+
+/* ── BUTTONS ── */
+.btn{
+  display:inline-flex;align-items:center;justify-content:center;gap:8px;
+  padding:14px 28px;border-radius:50px;font-size:.93rem;font-weight:600;
+  cursor:pointer;transition:all .22s;border:none;font-family:'Inter',sans-serif;
+}
+.btn-primary{background:var(--p);color:#fff;width:100%;}
+.btn-primary:hover:not(:disabled){background:var(--pd);transform:translateY(-1px);box-shadow:0 6px 22px rgba(184,92,114,.35);}
+.btn-primary:disabled{background:var(--border);color:var(--muted);cursor:not-allowed;transform:none;box-shadow:none;}
+.btn-ghost{background:transparent;color:var(--p);border:1.5px solid var(--p);}
+.btn-ghost:hover{background:#FDF5F7;}
+.nav-row{display:flex;gap:12px;margin-top:28px;}
+.nav-row .btn-primary{flex:1;}
+
+/* ── SUCCESS ── */
+.success{text-align:center;padding:12px 0;}
+.success-ring{
+  width:90px;height:90px;
+  background:linear-gradient(135deg,var(--p),var(--gold));
+  border-radius:50%;margin:0 auto 28px;
+  display:flex;align-items:center;justify-content:center;
+  font-size:2.2rem;box-shadow:0 8px 30px rgba(184,92,114,.35);
+  animation:pop .5s cubic-bezier(.175,.885,.32,1.275) both;
+}
+@keyframes pop{from{transform:scale(0)}to{transform:scale(1)}}
+.success h2{font-family:'Cormorant Garamond',serif;font-size:2rem;color:var(--dark);margin-bottom:10px;}
+.success p{color:var(--muted);font-size:.93rem;line-height:1.65;margin-bottom:28px;}
+.info-box{
+  background:linear-gradient(135deg,#FFF3F5,#FFF8FA);
+  border:1px solid #F0C0CC;border-radius:14px;padding:20px;text-align:left;
+}
+.info-box p{font-size:.84rem;color:#8E3A53;line-height:1.75;}
+
+/* ── LOADING ── */
+.loading{text-align:center;padding:40px;color:var(--muted);font-size:.9rem;}
+.dot-anim::after{content:'';animation:dots 1.2s infinite;}
+@keyframes dots{0%{content:''}33%{content:'.'}66%{content:'..'}100%{content:'...'}}
+
+/* ── RESPONSIVE ── */
+@media(max-width:600px){
+  .step-body{padding:24px 18px 28px;}
+  .svc-grid{grid-template-columns:1fr 1fr;}
+  .time-grid{grid-template-columns:repeat(3,1fr);}
+  .hero{padding:40px 16px 90px;}
+  .steps-bar{padding:20px 12px 0;}
+  .step-lbl{font-size:.62rem;}
+}
+@media(max-width:360px){.svc-grid{grid-template-columns:1fr;}}
+</style>
+</head>
+<body>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-badge">✦ Estética Avançada ✦</div>
+  <h1>Instituto Dra Sônia Machado</h1>
+  <div class="hero-divider"></div>
+  <div class="hero-sub">Harmonização Facial &amp; Corporal</div>
+  <div class="hero-addr">📍 Rua Tocantins, 2396 · Edifício Jatobá, Sala 11</div>
+</section>
+
+<!-- BOOKING -->
+<div class="booking-wrap">
+<div class="booking-card">
+
+  <!-- Steps bar -->
+  <div class="steps-bar" id="stepsBar">
+    <div class="step-item active" id="sp1"><div class="step-num">1</div><div class="step-lbl">Serviço</div></div>
+    <div class="step-item"        id="sp2"><div class="step-num">2</div><div class="step-lbl">Data</div></div>
+    <div class="step-item"        id="sp3"><div class="step-num">3</div><div class="step-lbl">Horário</div></div>
+    <div class="step-item"        id="sp4"><div class="step-num">4</div><div class="step-lbl">Confirmação</div></div>
+  </div>
+
+  <!-- STEP 1: Serviço -->
+  <div class="step-body active" id="s1">
+    <h2 class="sec-title">Escolha o serviço</h2>
+    <p class="sec-sub">Selecione o procedimento desejado</p>
+    <div class="cat-tabs">
+      <button class="cat-btn active" onclick="filtrar('todos',this)">Todos</button>
+      <button class="cat-btn"        onclick="filtrar('facial',this)">Facial</button>
+      <button class="cat-btn"        onclick="filtrar('corporal',this)">Corporal</button>
+      <button class="cat-btn"        onclick="filtrar('intimo',this)">Íntimo feminino</button>
+    </div>
+    <div class="svc-grid" id="svcGrid"><div class="loading dot-anim">Carregando</div></div>
+    <div class="nav-row"><button class="btn btn-primary" id="b1" disabled onclick="ir(2)">Próximo →</button></div>
+  </div>
+
+  <!-- STEP 2: Data -->
+  <div class="step-body" id="s2">
+    <h2 class="sec-title">Escolha a data</h2>
+    <p class="sec-sub">Selecione o dia do atendimento</p>
+    <div class="cal-wrap">
+      <div class="cal-header">
+        <button class="cal-nav" onclick="mesAnterior()">‹</button>
+        <div class="cal-title" id="calTitulo">—</div>
+        <button class="cal-nav" onclick="mesSeguinte()">›</button>
+      </div>
+      <div class="cal-weekdays">
+        <div class="cal-wday">DOM</div><div class="cal-wday">SEG</div>
+        <div class="cal-wday">TER</div><div class="cal-wday">QUA</div>
+        <div class="cal-wday">QUI</div><div class="cal-wday">SEX</div>
+        <div class="cal-wday">SÁB</div>
+      </div>
+      <div class="cal-days" id="calDays"></div>
+    </div>
+    <div class="nav-row">
+      <button class="btn btn-ghost" onclick="ir(1)">← Voltar</button>
+      <button class="btn btn-primary" id="b2" disabled onclick="ir(3)">Próximo →</button>
+    </div>
+  </div>
+
+  <!-- STEP 3: Horário -->
+  <div class="step-body" id="s3">
+    <h2 class="sec-title">Escolha o horário</h2>
+    <p class="time-label" id="timeLbl">Horários disponíveis</p>
+    <div class="time-grid" id="timeGrid"><div class="loading dot-anim">Verificando</div></div>
+    <div class="nav-row">
+      <button class="btn btn-ghost" onclick="ir(2)">← Voltar</button>
+      <button class="btn btn-primary" id="b3" disabled onclick="ir(4)">Próximo →</button>
+    </div>
+  </div>
+
+  <!-- STEP 4: Dados -->
+  <div class="step-body" id="s4">
+    <h2 class="sec-title">Seus dados</h2>
+    <p class="sec-sub">Preencha para finalizar o agendamento</p>
+
+    <div class="booking-summary">
+      <div class="summary-head">✦ Resumo do agendamento</div>
+      <div class="summary-row"><span class="sum-k">Serviço</span><span class="sum-v" id="rs-svc">—</span></div>
+      <div class="summary-row"><span class="sum-k">Data</span>   <span class="sum-v" id="rs-date">—</span></div>
+      <div class="summary-row"><span class="sum-k">Horário</span><span class="sum-v" id="rs-time">—</span></div>
+      <div class="summary-row"><span class="sum-k">Duração</span><span class="sum-v">1 hora</span></div>
+      <div class="summary-row"><span class="sum-k">Local</span>  <span class="sum-v">Rua Tocantins, 2396 · Edifício Jatobá, Sala 11</span></div>
+    </div>
+
+    <div class="field">
+      <label>Nome completo *</label>
+      <input type="text" id="inNome" placeholder="Seu nome completo" oninput="validar()">
+    </div>
+    <div class="field">
+      <label>WhatsApp / Telefone *</label>
+      <input type="tel" id="inTel" placeholder="(00) 00000-0000" oninput="maskFone(this);validar()">
+    </div>
+    <div class="field">
+      <label>Observações (opcional)</label>
+      <input type="text" id="inObs" placeholder="Alguma informação adicional?">
+    </div>
+
+    <div class="policy">
+      <p>⚠️ <strong>Política de cancelamento:</strong> Em caso de cancelamento, o atendimento poderá ser reagendado. Em caso de não comparecimento, os valores pagos pelo serviço não serão reembolsados.</p>
+    </div>
+
+    <div class="nav-row">
+      <button class="btn btn-ghost" onclick="ir(3)">← Voltar</button>
+      <button class="btn btn-primary" id="b4" disabled onclick="confirmar()">Confirmar Agendamento</button>
+    </div>
+  </div>
+
+  <!-- SUCESSO -->
+  <div class="step-body" id="sOk">
+    <div class="success">
+      <div class="success-ring">✨</div>
+      <h2>Agendamento Confirmado!</h2>
+      <p>Seu agendamento foi realizado com sucesso.<br>Aguardamos você com muito carinho!</p>
+      <div class="booking-summary" style="text-align:left;margin-bottom:20px;">
+        <div class="summary-head">✦ Seus dados</div>
+        <div class="summary-row"><span class="sum-k">Serviço</span><span class="sum-v" id="ok-svc">—</span></div>
+        <div class="summary-row"><span class="sum-k">Data</span>   <span class="sum-v" id="ok-date">—</span></div>
+        <div class="summary-row"><span class="sum-k">Horário</span><span class="sum-v" id="ok-time">—</span></div>
+        <div class="summary-row"><span class="sum-k">Nome</span>  <span class="sum-v" id="ok-nome">—</span></div>
+      </div>
+      <div class="info-box">
+        <p>
+          📍 <strong>Instituto Dra Sônia Machado</strong><br>
+          Rua Tocantins, 2396 · Edifício Jatobá, Sala 11<br><br>
+          🕐 Chegue com 10 minutos de antecedência.<br>
+          💳 Pix · Crédito / Débito · Dinheiro · Parcelamento em até 6× sem juros ou 12× com juros da maquininha.
+        </p>
+      </div>
+      <button class="btn btn-primary" onclick="resetar()" style="margin-top:24px;">Fazer Novo Agendamento</button>
+    </div>
+  </div>
+
+</div><!-- .booking-card -->
+</div><!-- .booking-wrap -->
+
+<script>
+const MESES=['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro'];
+const MESES_ABREV=['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+const SEMANA=['domingo','segunda-feira','terça-feira','quarta-feira','quinta-feira','sexta-feira','sábado'];
+
+// Config de ícones e categorias por id de serviço
+const CFG={
+  1:{i:'✨',c:'facial'},2:{i:'💉',c:'facial'},3:{i:'🌿',c:'corporal'},
+  4:{i:'🧵',c:'facial'},5:{i:'💫',c:'facial'},6:{i:'💪',c:'corporal'},
+  7:{i:'🧖',c:'facial'},8:{i:'✦',c:'corporal'},9:{i:'💧',c:'facial'},
+  10:{i:'🌸',c:'facial'},11:{i:'💋',c:'facial'},12:{i:'◆',c:'facial'},
+  13:{i:'◆',c:'facial'},14:{i:'⚡',c:'corporal'},15:{i:'🌹',c:'intimo'},
+  16:{i:'✦',c:'facial'},17:{i:'🔬',c:'corporal'},18:{i:'💆',c:'facial'},
+  19:{i:'🌺',c:'corporal'},
+};
+
+let st={servico:null,data:null,horario:null};
+let servicos=[];
+let catAtual='todos';
+let calAno,calMes;
+let dispMap={}; // date -> slots disponíveis
+
+const hoje=new Date();
+const hojeISO=()=>`${hoje.getFullYear()}-${pad(hoje.getMonth()+1)}-${pad(hoje.getDate())}`;
+
+function pad(n){return String(n).padStart(2,'0');}
+
+// ── Init ──
+async function init(){
+  calAno=hoje.getFullYear();calMes=hoje.getMonth();
+  try{
+    const r=await fetch('/api/servicos');
+    servicos=await r.json();
+    renderSvcs();
+  }catch{
+    document.getElementById('svcGrid').innerHTML='<p style="color:red">Erro ao carregar. Recarregue a página.</p>';
+  }
+}
+
+// ── Services ──
+function filtrar(cat,btn){
+  catAtual=cat;
+  document.querySelectorAll('.cat-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  renderSvcs();
+}
+
+function renderSvcs(){
+  const lista=catAtual==='todos'?servicos:servicos.filter(s=>(CFG[s.id]||{}).c===catAtual);
+  document.getElementById('svcGrid').innerHTML=lista.map(s=>{
+    const cfg=CFG[s.id]||{i:'◆',c:'todos'};
+    const sel=st.servico&&st.servico.id===s.id?'sel':'';
+    const preco=s.preco_min?`<div class="svc-price">A partir de R$ ${Number(s.preco_min).toLocaleString('pt-BR')}</div>`:'';
+    return`<div class="svc-card ${sel}" id="sc-${s.id}" onclick="selSvc(${s.id})">
+      <div class="svc-icon">${cfg.i}</div>
+      <div class="svc-name">${s.nome}</div>
+      ${preco}
+    </div>`;
+  }).join('');
+  if(!lista.length) document.getElementById('svcGrid').innerHTML='<p style="color:var(--muted);padding:16px 0">Nenhum serviço nesta categoria.</p>';
+}
+
+function selSvc(id){
+  st.servico=servicos.find(s=>s.id===id);
+  document.querySelectorAll('.svc-card').forEach(c=>c.classList.remove('sel'));
+  const el=document.getElementById(`sc-${id}`);
+  if(el)el.classList.add('sel');
+  document.getElementById('b1').disabled=false;
+}
+
+// ── Calendar ──
+async function renderCal(){
+  const mesStr=`${calAno}-${pad(calMes+1)}`;
+  document.getElementById('calTitulo').textContent=`${MESES_ABREV[calMes]} ${calAno}`;
+
+  // Busca disponibilidade do mês
+  try{
+    const r=await fetch(`/api/disponibilidade?mes=${mesStr}`);
+    dispMap=await r.json();
+  }catch{dispMap={};}
+
+  const primeiroDia=new Date(calAno,calMes,1).getDay();
+  const diasNoMes=new Date(calAno,calMes+1,0).getDate();
+  const hISO=hojeISO();
+
+  let html='';
+  for(let i=0;i<primeiroDia;i++) html+='<div class="cal-day vazio"></div>';
+
+  for(let d=1;d<=diasNoMes;d++){
+    const ds=`${calAno}-${pad(calMes+1)}-${pad(d)}`;
+    const dtObj=new Date(calAno,calMes,d);
+    const passado=dtObj<new Date(hoje.getFullYear(),hoje.getMonth(),hoje.getDate());
+    const eHoje=ds===hISO;
+    const eSel=ds===st.data;
+    const slots=dispMap[ds]??99;
+    const lotado=!passado&&slots===0;
+
+    let cls='cal-day';
+    if(passado)cls+=' passado';
+    else if(lotado)cls+=' lotado';
+    else cls+=' disponivel';
+    if(eHoje&&!eSel)cls+=' hoje';
+    if(eSel)cls+=' sel';
+
+    const click=(!passado&&!lotado)?`onclick="selData('${ds}')"`:''
+    html+=`<div class="${cls}" ${click}>${d}</div>`;
+  }
+  document.getElementById('calDays').innerHTML=html;
+}
+
+function mesAnterior(){
+  if(calMes===0){calMes=11;calAno--;}else calMes--;
+  renderCal();
+}
+function mesSeguinte(){
+  if(calMes===11){calMes=0;calAno++;}else calMes++;
+  renderCal();
+}
+
+function selData(ds){
+  st.data=ds;st.horario=null;
+  document.getElementById('b2').disabled=false;
+  renderCal();
+}
+
+// ── Time Slots ──
+async function carregarHorarios(){
+  document.getElementById('timeGrid').innerHTML='<div class="loading dot-anim">Verificando horários</div>';
+  document.getElementById('b3').disabled=true;
+  st.horario=null;
+
+  const [y,m,d]=st.data.split('-');
+  const dt=new Date(+y,+m-1,+d);
+  document.getElementById('timeLbl').innerHTML=`Horários disponíveis para <strong>${SEMANA[dt.getDay()]}, ${+d} de ${MESES[+m-1]} de ${y}</strong>`;
+
+  try{
+    const r=await fetch(`/api/horarios?data=${st.data}`);
+    const dados=await r.json();
+    if(!dados.disponiveis.length){
+      document.getElementById('timeGrid').innerHTML='<p style="color:var(--p);text-align:center;padding:24px">Sem horários disponíveis neste dia. Escolha outra data.</p>';
+      return;
+    }
+    const todos=[...dados.disponiveis,...dados.ocupados].sort();
+    document.getElementById('timeGrid').innerHTML=todos.map(h=>{
+      const ocup=dados.ocupados.includes(h);
+      return`<button class="t-btn" ${ocup?'disabled':''} id="th-${h.replace(':','-')}" ${!ocup?`onclick="selHora('${h}')"`:''}>${h}</button>`;
+    }).join('');
+  }catch{
+    document.getElementById('timeGrid').innerHTML='<p style="color:red">Erro ao carregar horários.</p>';
+  }
+}
+
+function selHora(h){
+  st.horario=h;
+  document.querySelectorAll('.t-btn').forEach(b=>b.classList.remove('sel'));
+  const el=document.getElementById(`th-${h.replace(':','-')}`);
+  if(el)el.classList.add('sel');
+  document.getElementById('b3').disabled=false;
+}
+
+// ── Form ──
+function atualizarResumo(){
+  const [y,m,d]=st.data.split('-');
+  const dt=new Date(+y,+m-1,+d);
+  document.getElementById('rs-svc').textContent=st.servico.nome;
+  document.getElementById('rs-date').textContent=`${SEMANA[dt.getDay()]}, ${+d} de ${MESES[+m-1]} de ${y}`;
+  document.getElementById('rs-time').textContent=st.horario;
+}
+
+function maskFone(el){
+  let v=el.value.replace(/\D/g,'').slice(0,11);
+  if(v.length>6)v=`(${v.slice(0,2)}) ${v.slice(2,7)}-${v.slice(7)}`;
+  else if(v.length>2)v=`(${v.slice(0,2)}) ${v.slice(2)}`;
+  else if(v.length)v=`(${v}`;
+  el.value=v;
+}
+
+function validar(){
+  const n=document.getElementById('inNome').value.trim();
+  const t=document.getElementById('inTel').value.replace(/\D/g,'');
+  document.getElementById('b4').disabled=!(n.length>=3&&t.length>=10);
+}
+
+async function confirmar(){
+  const btn=document.getElementById('b4');
+  btn.disabled=true;btn.textContent='Confirmando...';
+  try{
+    const r=await fetch('/api/agendamentos',{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        servico_id:st.servico.id,
+        nome_paciente:document.getElementById('inNome').value.trim(),
+        telefone_paciente:document.getElementById('inTel').value,
+        data_agendamento:st.data,horario:st.horario,
+        observacoes:document.getElementById('inObs').value.trim()||null,
+      }),
+    });
+    if(!r.ok){const e=await r.json();alert(`Erro: ${e.erro}`);btn.disabled=false;btn.textContent='Confirmar Agendamento';return;}
+    const[y,m,d]=st.data.split('-');const dt=new Date(+y,+m-1,+d);
+    document.getElementById('ok-svc').textContent=st.servico.nome;
+    document.getElementById('ok-date').textContent=`${SEMANA[dt.getDay()]}, ${+d} de ${MESES[+m-1]} de ${y}`;
+    document.getElementById('ok-time').textContent=st.horario;
+    document.getElementById('ok-nome').textContent=document.getElementById('inNome').value.trim();
+    document.querySelectorAll('.step-body').forEach(s=>s.classList.remove('active'));
+    document.getElementById('sOk').classList.add('active');
+    document.getElementById('stepsBar').style.display='none';
+    window.scrollTo({top:0,behavior:'smooth'});
+  }catch{alert('Erro de conexão. Tente novamente.');btn.disabled=false;btn.textContent='Confirmar Agendamento';}
+}
+
+// ── Navigation ──
+function ir(n){
+  document.querySelectorAll('.step-body').forEach(s=>s.classList.remove('active'));
+  document.getElementById(`s${n}`).classList.add('active');
+  for(let i=1;i<=4;i++){
+    const el=document.getElementById(`sp${i}`);
+    el.classList.remove('active','done');
+    if(i<n)el.classList.add('done');
+    if(i===n)el.classList.add('active');
+  }
+  if(n===2)renderCal();
+  if(n===3)carregarHorarios();
+  if(n===4)atualizarResumo();
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+
+function resetar(){
+  st={servico:null,data:null,horario:null};
+  ['inNome','inTel','inObs'].forEach(id=>document.getElementById(id).value='');
+  ['b1','b2','b3','b4'].forEach(id=>document.getElementById(id).disabled=true);
+  document.getElementById('stepsBar').style.display='flex';
+  dispMap={};calAno=hoje.getFullYear();calMes=hoje.getMonth();
+  renderSvcs();ir(1);
+}
+
+init();
+</script>
+</body>
+</html>
