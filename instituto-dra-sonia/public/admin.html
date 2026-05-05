@@ -269,6 +269,12 @@ body{background:var(--bg);}
 .b-falt{background:var(--red-bg);color:var(--red);}     .b-falt::before{background:var(--red);}
 .b-canc{background:#F3F0F0;color:#888;}                  .b-canc::before{background:#BBB;}
 .b-reag{background:var(--amber-bg);color:var(--amber);} .b-reag::before{background:var(--amber);}
+.tag-retorno{display:inline-block;font-size:.6rem;font-weight:700;letter-spacing:.5px;text-transform:uppercase;background:#EDE9FF;color:#6D4DC6;border-radius:4px;padding:2px 7px;margin-left:6px;vertical-align:middle;}
+.retorno-toggle{display:flex;align-items:center;gap:8px;margin-top:18px;padding-top:14px;border-top:1px solid #F0EDE8;cursor:pointer;font-size:.84rem;font-weight:600;color:var(--dark);}
+.retorno-toggle input[type=checkbox]{width:16px;height:16px;accent-color:var(--primary);cursor:pointer;}
+.retorno-fields{display:none;margin-top:12px;gap:10px;}
+.retorno-fields.open{display:grid;grid-template-columns:1fr 1fr;}
+.retorno-fields .mfield{margin:0;}
 .ag-btns{display:flex;gap:6px;flex-wrap:wrap;}
 .ab{padding:7px 13px;border-radius:8px;font-size:.72rem;font-weight:600;cursor:pointer;border:1px solid transparent;font-family:"Segoe UI",Roboto,Arial,sans-serif;white-space:nowrap;transition:var(--t);}
 .ab-g{background:var(--green-bg);color:var(--green);border-color:rgba(22,102,56,.12);}  .ab-g:hover{background:var(--green);color:#fff;box-shadow:0 4px 12px rgba(22,102,56,.32);}
@@ -959,6 +965,14 @@ body{background:var(--bg);}
           <option value="Parcelado 12x">Parcelado 12×</option>
         </select>
       </div>
+      <label class="retorno-toggle">
+        <input type="checkbox" id="cRetornoCheck" onchange="toggleRetorno()">
+        Agendar retorno para este paciente
+      </label>
+      <div class="retorno-fields" id="retornoFields">
+        <div class="mfield"><label>Data do retorno</label><input type="date" id="cRetornoData"></div>
+        <div class="mfield"><label>Horário</label><input type="time" id="cRetornoHora" min="08:00" max="19:00" step="1800"></div>
+      </div>
     </div>
     <div class="modal-footer">
       <button class="mb-cancel" onclick="fecharModal('modalCompareceu')">Cancelar</button>
@@ -1437,7 +1451,7 @@ function renderAgs(lista, showDate=false){
     return`<div class="ag-card" id="ag-${a.id}" data-status="${a.status}">
       ${timeBlock}
       <div class="ag-body">
-        <div class="ag-name">${a.nome_paciente}</div>
+        <div class="ag-name">${a.nome_paciente}${a.origem==='retorno'?'<span class="tag-retorno">Retorno</span>':''}</div>
         <div class="ag-sub">${a.servico_nome}</div>
         <div class="ag-phone">${a.telefone_paciente}</div>
         ${a.observacoes?`<div class="ag-obs">${a.observacoes}</div>`:''}
@@ -1469,6 +1483,10 @@ async function cancelar(id){
 }
 
 // ── Modal Compareceu ──
+function toggleRetorno(){
+  const open=document.getElementById('cRetornoCheck').checked;
+  document.getElementById('retornoFields').classList.toggle('open',open);
+}
 function abrirCompareceu(id){
   comparecendoId=id;
   const nome=document.querySelector(`#ag-${id} .ag-name`)?.textContent||'';
@@ -1476,6 +1494,10 @@ function abrirCompareceu(id){
   document.getElementById('infoCompareceu').innerHTML=`<strong>${nome}</strong><br>${svc}`;
   document.getElementById('cValor').value='';
   document.getElementById('cForma').value='';
+  document.getElementById('cRetornoCheck').checked=false;
+  document.getElementById('retornoFields').classList.remove('open');
+  document.getElementById('cRetornoData').value='';
+  document.getElementById('cRetornoHora').value='';
   document.getElementById('modalCompareceu').classList.add('open');
 }
 async function confirmarCompareceu(){
@@ -1486,8 +1508,27 @@ async function confirmarCompareceu(){
     headers:{'Content-Type':'application/json','x-admin-password':pwd},
     body:JSON.stringify({status:'compareceu',valor,forma_pagamento:forma}),
   });
+
+  const agendarRetorno=document.getElementById('cRetornoCheck').checked;
+  if(agendarRetorno){
+    const rData=document.getElementById('cRetornoData').value;
+    const rHora=document.getElementById('cRetornoHora').value;
+    if(!rData||!rHora){toast('Preencha data e horário do retorno.','err');return;}
+    const card=document.querySelector(`#ag-${comparecendoId}`);
+    const nome=card?.querySelector('.ag-name')?.textContent||'';
+    const tel=card?.querySelector('.ag-phone')?.textContent||'';
+    const svc=card?.querySelector('.ag-sub')?.textContent||'';
+    await fetch('/api/agendamentos',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','x-admin-password':pwd},
+      body:JSON.stringify({nome_paciente:nome,telefone_paciente:tel,servico_nome:svc,data_agendamento:rData,horario:rHora,origem:'retorno'}),
+    });
+    toast('Atendimento registrado + retorno agendado!','ok');
+  } else {
+    toast('Atendimento registrado.','ok');
+  }
+
   fecharModal('modalCompareceu');
-  toast('Atendimento registrado.','ok');
   carregarTudo();
 }
 
