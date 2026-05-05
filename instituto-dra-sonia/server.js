@@ -1,3 +1,6 @@
+'use strict';
+require('dotenv').config();
+
 const express = require('express');
 const cors    = require('cors');
 const fs      = require('fs');
@@ -5,370 +8,790 @@ const path    = require('path');
 
 const app  = express();
 const PORT = process.env.PORT || 3000;
-const DB   = path.join(__dirname, 'dados.json');
 
 // ============================================================
 // CONFIGURAÇÕES
 // ============================================================
-const ADMIN_PASSWORD = 'sonia2024';
-const HORARIO_INICIO = 8;
-const HORARIO_FIM    = 20;
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'sonia2024';
+const N8N_API_KEY    = process.env.N8N_API_KEY    || null;
+const USE_SUPABASE   = !!(process.env.SUPABASE_URL && process.env.SUPABASE_ANON_KEY);
+
 // ============================================================
+// SERVIÇOS (lista estática — não precisa de tabela)
+// ============================================================
+const SERVICOS = [
+  { id: 1,  nome: 'Bioestimuladores de Colágeno',            preco_min: null, preco_max: null },
+  { id: 2,  nome: 'Botox',                                    preco_min: null, preco_max: null },
+  { id: 3,  nome: 'Enzimas Emagrecedoras',                    preco_min: null, preco_max: null },
+  { id: 4,  nome: 'Fios de PDO',                              preco_min: null, preco_max: null },
+  { id: 5,  nome: 'Harmonização Facial',                      preco_min: 1000, preco_max: 4000 },
+  { id: 6,  nome: 'Harmonização de Glúteos e Abdômen',        preco_min: 1000, preco_max: 5000 },
+  { id: 7,  nome: 'Limpeza de Pele',                          preco_min: null, preco_max: null },
+  { id: 8,  nome: 'Lipo de Papada',                           preco_min: null, preco_max: null },
+  { id: 9,  nome: 'PDRN de Salmão',                           preco_min: null, preco_max: null },
+  { id: 10, nome: 'Peelings Químicos Exclusivos',             preco_min: null, preco_max: null },
+  { id: 11, nome: 'Preenchimento Labial',                     preco_min: null, preco_max: null },
+  { id: 12, nome: 'Preenchimento Mandíbula',                  preco_min: null, preco_max: null },
+  { id: 13, nome: 'Preenchimento Mento',                      preco_min: null, preco_max: null },
+  { id: 14, nome: 'Protocolo Sculpt Power',                   preco_min: null, preco_max: null },
+  { id: 15, nome: 'Rejuvenescimento Íntimo Feminino',         preco_min: null, preco_max: null },
+  { id: 16, nome: 'Rinomodelação',                            preco_min: null, preco_max: null },
+  { id: 17, nome: 'Secagem de Microvasos',                    preco_min: null, preco_max: null },
+  { id: 18, nome: 'Skinbooster para Rejuvenescimento Facial', preco_min: null, preco_max: null },
+  { id: 19, nome: 'Tratamento Exclusivo para Lipedema',       preco_min: null, preco_max: null },
+];
 
-// ---- Helpers de data ----------------------------------------
-function pad(n) { return String(n).padStart(2, '0'); }
-function isoData(d) { return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`; }
-function isoHoje()  { return isoData(new Date()); }
+// ============================================================
+// SUPABASE (produção)
+// ============================================================
+let sb = null;
+if (USE_SUPABASE) {
+  const { createClient } = require('@supabase/supabase-js');
+  sb = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_ANON_KEY);
+}
 
-// ---- Banco de dados em arquivo JSON -------------------------
+// ============================================================
+// FALLBACK: JSON local (dev sem Supabase)
+// ============================================================
+const DB = path.join(__dirname, 'dados.json');
+
 function lerDados() {
   if (!fs.existsSync(DB)) {
-    const inicial = {
-      proximoId: 1,
-      agendamentos: [],
-      vendas: [],
-      servicos: [
-        { id: 1,  nome: 'Bioestimuladores de Colágeno',            preco_min: null,  preco_max: null  },
-        { id: 2,  nome: 'Botox',                                    preco_min: null,  preco_max: null  },
-        { id: 3,  nome: 'Enzimas Emagrecedoras',                    preco_min: null,  preco_max: null  },
-        { id: 4,  nome: 'Fios de PDO',                              preco_min: null,  preco_max: null  },
-        { id: 5,  nome: 'Harmonização Facial',                      preco_min: 1000,  preco_max: 4000  },
-        { id: 6,  nome: 'Harmonização de Glúteos e Abdômen',        preco_min: 1000,  preco_max: 5000  },
-        { id: 7,  nome: 'Limpeza de Pele',                          preco_min: null,  preco_max: null  },
-        { id: 8,  nome: 'Lipo de Papada',                           preco_min: null,  preco_max: null  },
-        { id: 9,  nome: 'PDRN de Salmão',                           preco_min: null,  preco_max: null  },
-        { id: 10, nome: 'Peelings Químicos Exclusivos',             preco_min: null,  preco_max: null  },
-        { id: 11, nome: 'Preenchimento Labial',                     preco_min: null,  preco_max: null  },
-        { id: 12, nome: 'Preenchimento Mandíbula',                  preco_min: null,  preco_max: null  },
-        { id: 13, nome: 'Preenchimento Mento',                      preco_min: null,  preco_max: null  },
-        { id: 14, nome: 'Protocolo Sculpt Power',                   preco_min: null,  preco_max: null  },
-        { id: 15, nome: 'Rejuvenescimento Íntimo Feminino',         preco_min: null,  preco_max: null  },
-        { id: 16, nome: 'Rinomodelação',                            preco_min: null,  preco_max: null  },
-        { id: 17, nome: 'Secagem de Microvasos',                    preco_min: null,  preco_max: null  },
-        { id: 18, nome: 'Skinbooster para Rejuvenescimento Facial', preco_min: null,  preco_max: null  },
-        { id: 19, nome: 'Tratamento Exclusivo para Lipedema',       preco_min: null,  preco_max: null  },
-      ],
-    };
+    const inicial = { proximoId: 1, agendamentos: [], vendas: [], anamneses: [], servicos: SERVICOS };
     fs.writeFileSync(DB, JSON.stringify(inicial, null, 2), 'utf8');
     return inicial;
   }
-  const dados = JSON.parse(fs.readFileSync(DB, 'utf8'));
-  if (!dados.vendas) dados.vendas = [];
-  if (!dados.anamneses) dados.anamneses = [];
-  return dados;
+  const d = JSON.parse(fs.readFileSync(DB, 'utf8'));
+  if (!d.vendas)    d.vendas    = [];
+  if (!d.anamneses) d.anamneses = [];
+  return d;
 }
 
-function salvarDados(dados) {
-  fs.writeFileSync(DB, JSON.stringify(dados, null, 2), 'utf8');
+function salvarDados(d) {
+  fs.writeFileSync(DB, JSON.stringify(d, null, 2), 'utf8');
 }
 
-function gerarHorarios() {
-  const slots = [];
-  for (let h = HORARIO_INICIO; h < HORARIO_FIM; h++) slots.push(`${pad(h)}:00`);
-  return slots;
+// ============================================================
+// HELPERS
+// ============================================================
+function pad(n)     { return String(n).padStart(2, '0'); }
+function isoData(d) { return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`; }
+function isoHoje()  { return isoData(new Date()); }
+function agoraISO() { return new Date().toISOString().replace('T', ' ').slice(0, 19); }
+
+// Retorna { servico_id, servico_nome } a partir de ID numérico ou nome (string)
+function resolverServico(ref) {
+  if (!ref) return { servico_id: null, servico_nome: null };
+  if (/^\d+$/.test(String(ref))) {
+    const s = SERVICOS.find(x => x.id === Number(ref));
+    return { servico_id: s ? s.id : null, servico_nome: s ? s.nome : 'Serviço não informado' };
+  }
+  const s = SERVICOS.find(x => x.nome.toLowerCase() === String(ref).toLowerCase());
+  return { servico_id: s ? s.id : null, servico_nome: s ? s.nome : String(ref) };
 }
 
+// Normaliza body de agendamento — aceita formato admin.html E formato n8n
+function normalizarAgendamento(body) {
+  const nome     = body.nome_paciente     || body.nome          || body.cliente_nome      || null;
+  const telefone = body.telefone_paciente || body.telefone      || body.cliente_telefone  || null;
+  const data     = body.data_agendamento  || body.data          || null;
+  const horario  = body.horario           || body.horario_inicio || null;
+
+  let servico_id   = null;
+  let servico_nome = null;
+
+  if (body.servico_id) {
+    ({ servico_id, servico_nome } = resolverServico(body.servico_id));
+  } else if (body.procedimento || body.servico || body.servico_nome) {
+    ({ servico_id, servico_nome } = resolverServico(body.procedimento || body.servico || body.servico_nome));
+  }
+
+  return {
+    nome_paciente:     nome,
+    telefone_paciente: telefone,
+    data_agendamento:  data,
+    horario,
+    servico_id,
+    servico_nome,
+    observacoes: body.observacoes || null,
+    queixa:      body.queixa      || null,
+    origem:      body.origem      || 'manual',
+  };
+}
+
+// Converte row de anamnese do Supabase para o formato flat que o admin.html espera
+function flattenAnamnese(row) {
+  if (!row) return row;
+  return {
+    id:           'f' + row.id,
+    criado_em:    row.criado_em || '',
+    nome:         row.nome         || '',
+    nascimento:   row.nascimento   || '',
+    telefone:     row.telefone     || '',
+    procedimento: row.procedimento || '',
+    regiao:       row.regiao       || '',
+    incomoda:     row.incomoda     || '',
+    resultado:    row.resultado    || '',
+    ...(row.respostas || {}),
+  };
+}
+
+// Normaliza data_agendamento para garantir formato YYYY-MM-DD na comparação
+function toDate(v) {
+  if (!v) return '';
+  return String(v).slice(0, 10);
+}
+
+// ============================================================
+// MIDDLEWARES
+// ============================================================
 function verificarAdmin(req, res, next) {
   const senha = req.headers['x-admin-password'] || req.query.pwd;
   if (senha !== ADMIN_PASSWORD) return res.status(401).json({ erro: 'Acesso não autorizado' });
   next();
 }
 
-function agoraISO() {
-  return new Date().toISOString().replace('T', ' ').slice(0, 19);
+// Proteção opcional para o endpoint público usado pelo n8n
+function verificarN8N(req, res, next) {
+  if (!N8N_API_KEY) return next();
+  const chave = req.headers['x-api-key'];
+  if (chave !== N8N_API_KEY) return res.status(401).json({ success: false, error: 'API key inválida' });
+  next();
 }
 
-// ---- Middlewares -------------------------------------------
 app.use(cors());
 app.use(express.json());
-app.use(express.static(path.join(__dirname, 'public')));
+app.use(express.static(path.join(__dirname, 'public'), { index: 'admin.html' }));
 
-// ===========================================================
+app.get(['/admin', '/admin.html'], (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'admin.html'));
+});
+
+// ============================================================
 // ROTAS PÚBLICAS
-// ===========================================================
+// ============================================================
 
 app.get('/api/servicos', (req, res) => {
-  const { servicos } = lerDados();
-  res.json([...servicos].sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR')));
+  res.json([...SERVICOS].sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR')));
 });
 
-app.get('/api/horarios', (req, res) => {
-  const { data } = req.query;
-  if (!data) return res.status(400).json({ erro: 'Data é obrigatória' });
-  const { agendamentos } = lerDados();
-  const ocupados = agendamentos
-    .filter(a => a.data_agendamento === data && a.status !== 'cancelado')
-    .map(a => a.horario);
-  const todos = gerarHorarios();
-  res.json({ data, disponiveis: todos.filter(h => !ocupados.includes(h)), ocupados });
-});
+// Criar agendamento — compatível com admin.html (formato antigo) e n8n (formato novo)
+app.post('/api/agendamentos', verificarN8N, async (req, res) => {
+  try {
+    const ag = normalizarAgendamento(req.body);
 
-app.post('/api/agendamentos', (req, res) => {
-  const { servico_id, nome_paciente, telefone_paciente, data_agendamento, horario, observacoes } = req.body;
-  if (!servico_id || !nome_paciente || !telefone_paciente || !data_agendamento || !horario)
-    return res.status(400).json({ erro: 'Preencha todos os campos obrigatórios' });
+    if (!ag.nome_paciente || !ag.data_agendamento || !ag.horario) {
+      return res.status(400).json({
+        success: false,
+        error:   'Campos obrigatórios: nome (ou nome_paciente), data (ou data_agendamento) e horario',
+        erro:    'Preencha todos os campos obrigatórios',
+      });
+    }
 
-  const dados = lerDados();
-  const conflito = dados.agendamentos.find(
-    a => a.data_agendamento === data_agendamento && a.horario === horario && a.status !== 'cancelado'
-  );
-  if (conflito) return res.status(409).json({ erro: 'Este horário já está ocupado. Por favor, escolha outro.' });
+    if (USE_SUPABASE) {
+      const { data: conflito } = await sb
+        .from('agendamentos')
+        .select('id')
+        .eq('data_agendamento', ag.data_agendamento)
+        .eq('horario', ag.horario)
+        .neq('status', 'cancelado')
+        .limit(1)
+        .maybeSingle();
 
-  const servico = dados.servicos.find(s => s.id === Number(servico_id));
-  if (!servico) return res.status(400).json({ erro: 'Serviço inválido' });
+      if (conflito) return res.status(409).json({
+        success: false, error: 'Horário já ocupado',
+        erro: 'Este horário já está ocupado. Por favor, escolha outro.',
+      });
 
-  const novo = {
-    id: dados.proximoId++,
-    servico_id: Number(servico_id),
-    servico_nome: servico.nome,
-    nome_paciente,
-    telefone_paciente,
-    data_agendamento,
-    horario,
-    status: 'agendado',
-    observacoes: observacoes || null,
-    valor: null,
-    forma_pagamento: null,
-    criado_em: agoraISO(),
-  };
-  dados.agendamentos.push(novo);
-  salvarDados(dados);
-  res.status(201).json(novo);
-});
+      const { data: novo, error } = await sb
+        .from('agendamentos')
+        .insert({ ...ag, status: 'agendado', valor: null, forma_pagamento: null })
+        .select()
+        .single();
 
-// Disponibilidade mensal para o calendário do site
-app.get('/api/disponibilidade', (req, res) => {
-  const { mes } = req.query;
-  if (!mes) return res.status(400).json({ erro: 'Mês obrigatório' });
-  const { agendamentos } = lerDados();
-  const [ano, m] = mes.split('-').map(Number);
-  const diasNoMes = new Date(ano, m, 0).getDate();
-  const todos = gerarHorarios();
-  const resultado = {};
-  for (let d = 1; d <= diasNoMes; d++) {
-    const ds = `${ano}-${pad(m)}-${pad(d)}`;
-    const ocupados = agendamentos.filter(a => a.data_agendamento === ds && a.status !== 'cancelado').length;
-    resultado[ds] = todos.length - ocupados;
-  }
-  res.json(resultado);
-});
+      if (error) throw error;
+      return res.status(201).json({ success: true, agendamento: novo, ...novo });
+    }
 
-// ===========================================================
-// ROTAS ADMIN
-// ===========================================================
-
-// Lista agendamentos
-app.get('/api/admin/agendamentos', verificarAdmin, (req, res) => {
-  const { data, status } = req.query;
-  let { agendamentos } = lerDados();
-  if (data)   agendamentos = agendamentos.filter(a => a.data_agendamento === data);
-  if (status) agendamentos = agendamentos.filter(a => a.status === status);
-  agendamentos.sort((a, b) => {
-    const d = a.data_agendamento.localeCompare(b.data_agendamento);
-    return d !== 0 ? d : a.horario.localeCompare(b.horario);
-  });
-  res.json(agendamentos);
-});
-
-// Atualiza agendamento (status, valor, reagendamento)
-app.put('/api/admin/agendamentos/:id', verificarAdmin, (req, res) => {
-  const id = parseInt(req.params.id);
-  const { status, observacoes, data_agendamento, horario, valor, forma_pagamento } = req.body;
-
-  const dados = lerDados();
-  const idx = dados.agendamentos.findIndex(a => a.id === id);
-  if (idx === -1) return res.status(404).json({ erro: 'Agendamento não encontrado' });
-
-  if (data_agendamento && horario) {
+    // Fallback JSON
+    const dados = lerDados();
     const conflito = dados.agendamentos.find(
-      a => a.data_agendamento === data_agendamento && a.horario === horario && a.status !== 'cancelado' && a.id !== id
+      a => a.data_agendamento === ag.data_agendamento && a.horario === ag.horario && a.status !== 'cancelado'
     );
-    if (conflito) return res.status(409).json({ erro: 'Horário já ocupado para reagendamento' });
+    if (conflito) return res.status(409).json({
+      success: false, error: 'Horário já ocupado',
+      erro: 'Este horário já está ocupado. Por favor, escolha outro.',
+    });
+
+    const novo = {
+      id: dados.proximoId++, ...ag,
+      status: 'agendado', valor: null, forma_pagamento: null,
+      criado_em: agoraISO(),
+    };
+    dados.agendamentos.push(novo);
+    salvarDados(dados);
+    return res.status(201).json({ success: true, agendamento: novo, ...novo });
+
+  } catch (err) {
+    console.error('POST /api/agendamentos:', err.message);
+    return res.status(500).json({ success: false, error: err.message });
   }
-
-  const ag = dados.agendamentos[idx];
-  if (status !== undefined)           ag.status           = status;
-  if (observacoes !== undefined)      ag.observacoes      = observacoes;
-  if (data_agendamento !== undefined) ag.data_agendamento = data_agendamento;
-  if (horario !== undefined)          ag.horario          = horario;
-  if (valor !== undefined)            ag.valor            = valor;
-  if (forma_pagamento !== undefined)  ag.forma_pagamento  = forma_pagamento;
-
-  salvarDados(dados);
-  res.json(ag);
 });
 
-// Cancela
-app.delete('/api/admin/agendamentos/:id', verificarAdmin, (req, res) => {
-  const id = parseInt(req.params.id);
-  const dados = lerDados();
-  const ag = dados.agendamentos.find(a => a.id === id);
-  if (!ag) return res.status(404).json({ erro: 'Não encontrado' });
-  ag.status = 'cancelado';
-  salvarDados(dados);
-  res.json({ mensagem: 'Agendamento cancelado' });
+// ============================================================
+// ROTAS ADMIN
+// ============================================================
+
+// Lista agendamentos (com filtros)
+app.get('/api/admin/agendamentos', verificarAdmin, async (req, res) => {
+  try {
+    const { data, status, inicio, fim } = req.query;
+
+    if (USE_SUPABASE) {
+      let q = sb.from('agendamentos').select('*');
+      if (data) {
+        q = q.eq('data_agendamento', data);
+      } else if (inicio || fim) {
+        if (inicio) q = q.gte('data_agendamento', inicio);
+        if (fim)    q = q.lte('data_agendamento', fim);
+      }
+      if (status) q = q.eq('status', status);
+      q = q.order('data_agendamento').order('horario');
+      const { data: rows, error } = await q;
+      if (error) throw error;
+      return res.json(rows || []);
+    }
+
+    let { agendamentos } = lerDados();
+    if (data) {
+      agendamentos = agendamentos.filter(a => a.data_agendamento === data);
+    } else if (inicio || fim) {
+      if (inicio) agendamentos = agendamentos.filter(a => a.data_agendamento >= inicio);
+      if (fim)    agendamentos = agendamentos.filter(a => a.data_agendamento <= fim);
+    }
+    if (status) agendamentos = agendamentos.filter(a => a.status === status);
+    agendamentos.sort((a, b) => {
+      const d = a.data_agendamento.localeCompare(b.data_agendamento);
+      return d !== 0 ? d : a.horario.localeCompare(b.horario);
+    });
+    return res.json(agendamentos);
+
+  } catch (err) {
+    console.error(err.message);
+    return res.status(500).json({ erro: err.message });
+  }
+});
+
+// Atualiza agendamento
+app.put('/api/admin/agendamentos/:id', verificarAdmin, async (req, res) => {
+  try {
+    const id = req.params.id;
+    const { status, observacoes, data_agendamento, horario, valor, forma_pagamento } = req.body;
+
+    if (USE_SUPABASE) {
+      if (data_agendamento && horario) {
+        const { data: conflito } = await sb
+          .from('agendamentos').select('id')
+          .eq('data_agendamento', data_agendamento).eq('horario', horario)
+          .neq('status', 'cancelado').neq('id', id).limit(1).maybeSingle();
+        if (conflito) return res.status(409).json({ erro: 'Horário já ocupado para reagendamento' });
+      }
+
+      const upd = {};
+      if (status           !== undefined) upd.status           = status;
+      if (observacoes      !== undefined) upd.observacoes      = observacoes;
+      if (data_agendamento !== undefined) upd.data_agendamento = data_agendamento;
+      if (horario          !== undefined) upd.horario          = horario;
+      if (valor            !== undefined) upd.valor            = valor;
+      if (forma_pagamento  !== undefined) upd.forma_pagamento  = forma_pagamento;
+      upd.atualizado_em = new Date().toISOString();
+
+      const { data: ag, error } = await sb.from('agendamentos').update(upd).eq('id', id).select().single();
+      if (error) throw error;
+      return res.json(ag);
+    }
+
+    const numId = parseInt(id);
+    const dados = lerDados();
+    const idx   = dados.agendamentos.findIndex(a => a.id === numId);
+    if (idx === -1) return res.status(404).json({ erro: 'Agendamento não encontrado' });
+
+    if (data_agendamento && horario) {
+      const conflito = dados.agendamentos.find(
+        a => a.data_agendamento === data_agendamento && a.horario === horario &&
+             a.status !== 'cancelado' && a.id !== numId
+      );
+      if (conflito) return res.status(409).json({ erro: 'Horário já ocupado para reagendamento' });
+    }
+
+    const ag = dados.agendamentos[idx];
+    if (status           !== undefined) ag.status           = status;
+    if (observacoes      !== undefined) ag.observacoes      = observacoes;
+    if (data_agendamento !== undefined) ag.data_agendamento = data_agendamento;
+    if (horario          !== undefined) ag.horario          = horario;
+    if (valor            !== undefined) ag.valor            = valor;
+    if (forma_pagamento  !== undefined) ag.forma_pagamento  = forma_pagamento;
+    salvarDados(dados);
+    return res.json(ag);
+
+  } catch (err) {
+    console.error(err.message);
+    return res.status(500).json({ erro: err.message });
+  }
+});
+
+// Cancela agendamento
+app.delete('/api/admin/agendamentos/:id', verificarAdmin, async (req, res) => {
+  try {
+    const id = req.params.id;
+
+    if (USE_SUPABASE) {
+      const { error } = await sb.from('agendamentos')
+        .update({ status: 'cancelado', atualizado_em: new Date().toISOString() })
+        .eq('id', id);
+      if (error) throw error;
+      return res.json({ mensagem: 'Agendamento cancelado' });
+    }
+
+    const numId = parseInt(id);
+    const dados = lerDados();
+    const ag    = dados.agendamentos.find(a => a.id === numId);
+    if (!ag) return res.status(404).json({ erro: 'Não encontrado' });
+    ag.status = 'cancelado';
+    salvarDados(dados);
+    return res.json({ mensagem: 'Agendamento cancelado' });
+
+  } catch (err) {
+    console.error(err.message);
+    return res.status(500).json({ erro: err.message });
+  }
 });
 
 // Estatísticas do dia
-app.get('/api/admin/stats', verificarAdmin, (req, res) => {
-  const { data } = req.query;
-  if (!data) return res.status(400).json({ erro: 'Data obrigatória' });
-  const { agendamentos } = lerDados();
-  const dia = agendamentos.filter(a => a.data_agendamento === data);
-  res.json({
-    total:      dia.filter(a => a.status !== 'cancelado').length,
-    agendados:  dia.filter(a => a.status === 'agendado').length,
-    compareceu: dia.filter(a => a.status === 'compareceu').length,
-    faltou:     dia.filter(a => a.status === 'nao_compareceu').length,
-    cancelados: dia.filter(a => a.status === 'cancelado').length,
-  });
+app.get('/api/admin/stats', verificarAdmin, async (req, res) => {
+  try {
+    const { data } = req.query;
+    if (!data) return res.status(400).json({ erro: 'Data obrigatória' });
+
+    if (USE_SUPABASE) {
+      const { data: rows, error } = await sb.from('agendamentos').select('status').eq('data_agendamento', data);
+      if (error) throw error;
+      const r = rows || [];
+      return res.json({
+        total:      r.filter(a => a.status !== 'cancelado').length,
+        agendados:  r.filter(a => a.status === 'agendado').length,
+        compareceu: r.filter(a => a.status === 'compareceu').length,
+        faltou:     r.filter(a => a.status === 'nao_compareceu').length,
+        cancelados: r.filter(a => a.status === 'cancelado').length,
+      });
+    }
+
+    const { agendamentos } = lerDados();
+    const dia = agendamentos.filter(a => a.data_agendamento === data);
+    return res.json({
+      total:      dia.filter(a => a.status !== 'cancelado').length,
+      agendados:  dia.filter(a => a.status === 'agendado').length,
+      compareceu: dia.filter(a => a.status === 'compareceu').length,
+      faltou:     dia.filter(a => a.status === 'nao_compareceu').length,
+      cancelados: dia.filter(a => a.status === 'cancelado').length,
+    });
+
+  } catch (err) {
+    console.error(err.message);
+    return res.status(500).json({ erro: err.message });
+  }
 });
 
-// Calendário mensal (admin) — retorna agendamentos agrupados por dia
-app.get('/api/admin/calendario', verificarAdmin, (req, res) => {
-  const { mes } = req.query;
-  if (!mes) return res.status(400).json({ erro: 'Mês obrigatório' });
-  const { agendamentos } = lerDados();
-  const resultado = {};
-  agendamentos
-    .filter(a => a.data_agendamento.startsWith(mes) && a.status !== 'cancelado')
-    .forEach(a => {
-      if (!resultado[a.data_agendamento]) resultado[a.data_agendamento] = [];
-      resultado[a.data_agendamento].push({
-        id: a.id, nome: a.nome_paciente, horario: a.horario,
-        servico: a.servico_nome, status: a.status,
+// Calendário mensal
+app.get('/api/admin/calendario', verificarAdmin, async (req, res) => {
+  try {
+    const { mes } = req.query;
+    if (!mes) return res.status(400).json({ erro: 'Mês obrigatório' });
+
+    if (USE_SUPABASE) {
+      const [ano, m] = mes.split('-').map(Number);
+      const inicio = `${mes}-01`;
+      const fim    = `${mes}-${pad(new Date(ano, m, 0).getDate())}`;
+
+      const { data: rows, error } = await sb.from('agendamentos')
+        .select('id, nome_paciente, horario, servico_nome, status, data_agendamento')
+        .gte('data_agendamento', inicio)
+        .lte('data_agendamento', fim)
+        .neq('status', 'cancelado');
+      if (error) throw error;
+
+      const resultado = {};
+      (rows || []).forEach(a => {
+        const ds = toDate(a.data_agendamento);
+        if (!resultado[ds]) resultado[ds] = [];
+        resultado[ds].push({ id: a.id, nome: a.nome_paciente, horario: a.horario, servico: a.servico_nome, status: a.status });
       });
-    });
-  res.json(resultado);
+      return res.json(resultado);
+    }
+
+    const { agendamentos } = lerDados();
+    const resultado = {};
+    agendamentos
+      .filter(a => a.data_agendamento.startsWith(mes) && a.status !== 'cancelado')
+      .forEach(a => {
+        if (!resultado[a.data_agendamento]) resultado[a.data_agendamento] = [];
+        resultado[a.data_agendamento].push({ id: a.id, nome: a.nome_paciente, horario: a.horario, servico: a.servico_nome, status: a.status });
+      });
+    return res.json(resultado);
+
+  } catch (err) {
+    console.error(err.message);
+    return res.status(500).json({ erro: err.message });
+  }
 });
 
 // Registra venda manual
-app.post('/api/admin/vendas', verificarAdmin, (req, res) => {
-  const { servico_id, valor, forma_pagamento, descricao, data } = req.body;
-  if (!valor || Number(valor) <= 0) return res.status(400).json({ erro: 'Informe o valor da venda.' });
+app.post('/api/admin/vendas', verificarAdmin, async (req, res) => {
+  try {
+    const { servico_id, valor, forma_pagamento, descricao, data } = req.body;
+    if (!valor || Number(valor) <= 0) return res.status(400).json({ erro: 'Informe o valor da venda.' });
 
-  const dados = lerDados();
-  const servico = servico_id ? dados.servicos.find(s => s.id === Number(servico_id)) : null;
+    const { servico_id: sId, servico_nome: sNome } = resolverServico(servico_id);
 
-  const nova = {
-    id: 'v' + Date.now(),
-    tipo: 'venda_manual',
-    data_agendamento: data || isoHoje(),
-    servico_id: servico_id ? Number(servico_id) : null,
-    servico_nome: servico ? servico.nome : 'Serviço não informado',
-    descricao: descricao || null,
-    valor: Number(valor),
-    forma_pagamento: forma_pagamento || null,
-    criado_em: agoraISO(),
-  };
-  dados.vendas.push(nova);
-  salvarDados(dados);
-  res.status(201).json(nova);
-});
+    if (USE_SUPABASE) {
+      const { data: nova, error } = await sb.from('vendas').insert({
+        tipo:             'venda_manual',
+        data_agendamento: data || isoHoje(),
+        servico_id:       sId,
+        servico_nome:     sNome || 'Serviço não informado',
+        descricao:        descricao || null,
+        valor:            Number(valor),
+        forma_pagamento:  forma_pagamento || null,
+      }).select().single();
+      if (error) throw error;
+      return res.status(201).json({ ...nova, id: 'v' + nova.id });
+    }
 
-// Financeiro
-app.get('/api/admin/financeiro', verificarAdmin, (req, res) => {
-  const { agendamentos, vendas } = lerDados();
-  const pagos = agendamentos.filter(a => a.status === 'compareceu');
-  const vendasNorm = vendas.map(v => ({
-    ...v,
-    nome_paciente: v.descricao || 'Venda avulsa',
-    horario: '00:00',
-  }));
-  const tudo = [...pagos, ...vendasNorm];
+    const dados = lerDados();
+    const nova = {
+      id:               'v' + Date.now(),
+      tipo:             'venda_manual',
+      data_agendamento: data || isoHoje(),
+      servico_id:       sId,
+      servico_nome:     sNome || 'Serviço não informado',
+      descricao:        descricao || null,
+      valor:            Number(valor),
+      forma_pagamento:  forma_pagamento || null,
+      criado_em:        agoraISO(),
+    };
+    dados.vendas.push(nova);
+    salvarDados(dados);
+    return res.status(201).json(nova);
 
-  const hoje = new Date();
-  const hojeStr = isoHoje();
-  const mesStr  = hojeStr.slice(0, 7);
-
-  const semanaInicio = new Date(hoje);
-  semanaInicio.setDate(semanaInicio.getDate() - 6);
-  const semanaStr = isoData(semanaInicio);
-
-  function soma(lista) { return lista.reduce((s, a) => s + (a.valor || 0), 0); }
-
-  const total_hoje   = soma(tudo.filter(a => a.data_agendamento === hojeStr));
-  const total_semana = soma(tudo.filter(a => a.data_agendamento >= semanaStr));
-  const total_mes    = soma(tudo.filter(a => a.data_agendamento.startsWith(mesStr)));
-  const total_geral  = soma(tudo);
-
-  // Receita por dia — últimos 30 dias
-  const porDia = {};
-  for (let i = 29; i >= 0; i--) {
-    const d = new Date(hoje);
-    d.setDate(d.getDate() - i);
-    const ds = isoData(d);
-    porDia[ds] = soma(tudo.filter(a => a.data_agendamento === ds));
+  } catch (err) {
+    console.error(err.message);
+    return res.status(500).json({ erro: err.message });
   }
-
-  // Por forma de pagamento
-  const porForma = {};
-  tudo.filter(a => a.forma_pagamento).forEach(a => {
-    porForma[a.forma_pagamento] = (porForma[a.forma_pagamento] || 0) + (a.valor || 0);
-  });
-
-  // Serviços mais realizados (top 5)
-  const porServico = {};
-  tudo.forEach(a => {
-    porServico[a.servico_nome] = (porServico[a.servico_nome] || 0) + 1;
-  });
-  const topServicos = Object.entries(porServico)
-    .sort((a, b) => b[1] - a[1])
-    .slice(0, 5)
-    .map(([nome, qtd]) => ({ nome, qtd }));
-
-  // Lista dos últimos 50 pagamentos
-  const lista = tudo
-    .filter(a => a.valor)
-    .sort((a, b) => b.data_agendamento.localeCompare(a.data_agendamento) || b.horario.localeCompare(a.horario))
-    .slice(0, 50);
-
-  res.json({ total_hoje, total_semana, total_mes, total_geral, porDia, porForma, topServicos, lista });
 });
 
-// Salva ficha de anamnese
-app.post('/api/admin/anamneses', verificarAdmin, (req, res) => {
-  const dados = lerDados();
-  const ficha = { id: 'f' + Date.now(), criado_em: agoraISO(), ...req.body };
-  dados.anamneses.unshift(ficha);
-  salvarDados(dados);
-  res.status(201).json(ficha);
+// Financeiro — dashboard
+app.get('/api/admin/financeiro', verificarAdmin, async (req, res) => {
+  try {
+    let pagos, vendas;
+
+    if (USE_SUPABASE) {
+      const [resAgs, resVds] = await Promise.all([
+        sb.from('agendamentos').select('*').eq('status', 'compareceu'),
+        sb.from('vendas').select('*'),
+      ]);
+      if (resAgs.error) throw resAgs.error;
+      if (resVds.error) throw resVds.error;
+      pagos  = resAgs.data || [];
+      vendas = (resVds.data || []).map(v => ({ ...v, id: 'v' + v.id }));
+    } else {
+      const dados = lerDados();
+      pagos  = dados.agendamentos.filter(a => a.status === 'compareceu');
+      vendas = dados.vendas || [];
+    }
+
+    const vendasNorm = vendas.map(v => ({
+      ...v, nome_paciente: v.descricao || 'Venda avulsa', horario: v.horario || '00:00',
+    }));
+    const tudo = [...pagos, ...vendasNorm];
+
+    const hoje       = new Date();
+    const hojeStr    = isoHoje();
+    const mesStr     = hojeStr.slice(0, 7);
+    const semInicio  = new Date(hoje);
+    semInicio.setDate(semInicio.getDate() - 6);
+    const semStr = isoData(semInicio);
+
+    function soma(lista) { return lista.reduce((s, a) => s + (Number(a.valor) || 0), 0); }
+
+    const total_hoje   = soma(tudo.filter(a => toDate(a.data_agendamento) === hojeStr));
+    const total_semana = soma(tudo.filter(a => toDate(a.data_agendamento) >= semStr));
+    const total_mes    = soma(tudo.filter(a => toDate(a.data_agendamento).startsWith(mesStr)));
+    const total_geral  = soma(tudo);
+
+    const porDia = {};
+    for (let i = 29; i >= 0; i--) {
+      const d = new Date(hoje); d.setDate(d.getDate() - i);
+      const ds = isoData(d);
+      porDia[ds] = soma(tudo.filter(a => toDate(a.data_agendamento) === ds));
+    }
+
+    const porForma = {};
+    tudo.filter(a => a.forma_pagamento).forEach(a => {
+      porForma[a.forma_pagamento] = (porForma[a.forma_pagamento] || 0) + (Number(a.valor) || 0);
+    });
+
+    const porServico = {};
+    tudo.forEach(a => {
+      const n = a.servico_nome || 'Serviço';
+      porServico[n] = (porServico[n] || 0) + 1;
+    });
+    const topServicos = Object.entries(porServico)
+      .sort((a, b) => b[1] - a[1]).slice(0, 5)
+      .map(([nome, qtd]) => ({ nome, qtd }));
+
+    const lista = tudo
+      .filter(a => a.valor)
+      .sort((a, b) =>
+        toDate(b.data_agendamento).localeCompare(toDate(a.data_agendamento)) ||
+        (b.horario || '').localeCompare(a.horario || '')
+      )
+      .slice(0, 50);
+
+    return res.json({ total_hoje, total_semana, total_mes, total_geral, porDia, porForma, topServicos, lista });
+
+  } catch (err) {
+    console.error(err.message);
+    return res.status(500).json({ erro: err.message });
+  }
 });
 
-// Lista fichas de anamnese
-app.get('/api/admin/anamneses', verificarAdmin, (req, res) => {
-  const { anamneses } = lerDados();
-  res.json(anamneses.slice(0, 200));
+// Salva anamnese
+app.post('/api/admin/anamneses', verificarAdmin, async (req, res) => {
+  try {
+    if (USE_SUPABASE) {
+      const { nome, nascimento, telefone, procedimento, regiao, incomoda, resultado, ...respostas } = req.body;
+      const { data, error } = await sb.from('anamneses').insert({
+        nome:         nome         || '',
+        nascimento:   nascimento   || null,
+        telefone:     telefone     || null,
+        procedimento: procedimento || null,
+        regiao:       regiao       || null,
+        incomoda:     incomoda     || null,
+        resultado:    resultado    || null,
+        respostas,
+      }).select().single();
+      if (error) throw error;
+      return res.status(201).json(flattenAnamnese(data));
+    }
+
+    const dados = lerDados();
+    const ficha = { id: 'f' + Date.now(), criado_em: agoraISO(), ...req.body };
+    dados.anamneses.unshift(ficha);
+    salvarDados(dados);
+    return res.status(201).json(ficha);
+
+  } catch (err) {
+    console.error(err.message);
+    return res.status(500).json({ erro: err.message });
+  }
 });
 
-// Exclui ficha de anamnese
-app.delete('/api/admin/anamneses/:id', verificarAdmin, (req, res) => {
-  const dados = lerDados();
-  const idx = dados.anamneses.findIndex(f => f.id === req.params.id);
-  if (idx === -1) return res.status(404).json({ erro: 'Ficha não encontrada' });
-  dados.anamneses.splice(idx, 1);
-  salvarDados(dados);
-  res.json({ mensagem: 'Ficha excluída' });
+// Lista anamneses
+app.get('/api/admin/anamneses', verificarAdmin, async (req, res) => {
+  try {
+    if (USE_SUPABASE) {
+      const { data, error } = await sb.from('anamneses')
+        .select('*').order('criado_em', { ascending: false }).limit(200);
+      if (error) throw error;
+      return res.json((data || []).map(flattenAnamnese));
+    }
+
+    const { anamneses } = lerDados();
+    return res.json(anamneses.slice(0, 200));
+
+  } catch (err) {
+    console.error(err.message);
+    return res.status(500).json({ erro: err.message });
+  }
+});
+
+// Exclui anamnese
+app.delete('/api/admin/anamneses/:id', verificarAdmin, async (req, res) => {
+  try {
+    const id = req.params.id;
+
+    if (USE_SUPABASE) {
+      // IDs retornados com prefixo 'f'; remove para obter o UUID
+      const uuid = id.startsWith('f') ? id.slice(1) : id;
+      const { error } = await sb.from('anamneses').delete().eq('id', uuid);
+      if (error) throw error;
+      return res.json({ mensagem: 'Ficha excluída' });
+    }
+
+    const dados = lerDados();
+    const idx = dados.anamneses.findIndex(f => f.id === id);
+    if (idx === -1) return res.status(404).json({ erro: 'Ficha não encontrada' });
+    dados.anamneses.splice(idx, 1);
+    salvarDados(dados);
+    return res.json({ mensagem: 'Ficha excluída' });
+
+  } catch (err) {
+    console.error(err.message);
+    return res.status(500).json({ erro: err.message });
+  }
 });
 
 // Busca paciente
-app.get('/api/admin/buscar', verificarAdmin, (req, res) => {
-  const { q } = req.query;
-  if (!q || q.length < 2) return res.json([]);
-  const { agendamentos } = lerDados();
-  const termo = q.toLowerCase();
-  const encontrados = agendamentos.filter(a =>
-    a.nome_paciente.toLowerCase().includes(termo) ||
-    a.telefone_paciente.replace(/\D/g, '').includes(termo.replace(/\D/g, ''))
-  );
-  encontrados.sort((a, b) => b.data_agendamento.localeCompare(a.data_agendamento));
-  res.json(encontrados.slice(0, 100));
+app.get('/api/admin/buscar', verificarAdmin, async (req, res) => {
+  try {
+    const { q } = req.query;
+    if (!q || q.length < 2) return res.json([]);
+
+    if (USE_SUPABASE) {
+      const { data, error } = await sb.from('agendamentos')
+        .select('*')
+        .or(`nome_paciente.ilike.%${q}%,telefone_paciente.ilike.%${q}%`)
+        .order('data_agendamento', { ascending: false })
+        .limit(100);
+      if (error) throw error;
+      return res.json(data || []);
+    }
+
+    const { agendamentos } = lerDados();
+    const t = q.toLowerCase();
+    const found = agendamentos
+      .filter(a =>
+        a.nome_paciente.toLowerCase().includes(t) ||
+        (a.telefone_paciente || '').replace(/\D/g, '').includes(t.replace(/\D/g, ''))
+      )
+      .sort((a, b) => b.data_agendamento.localeCompare(a.data_agendamento));
+    return res.json(found.slice(0, 100));
+
+  } catch (err) {
+    console.error(err.message);
+    return res.status(500).json({ erro: err.message });
+  }
 });
 
-// -----------------------------------------------------------
-app.listen(PORT, () => {
-  console.log('\n✨ Instituto Dra Sônia Machado — Sistema de Agendamentos');
-  console.log(`🌐 Site de Agendamento    : http://localhost:${PORT}`);
-  console.log(`🔐 Painel Administrativo  : http://localhost:${PORT}/admin.html`);
-  console.log(`   Senha do painel        : ${ADMIN_PASSWORD}\n`);
+// Editar lançamento financeiro
+app.put('/api/admin/financeiro/:id', verificarAdmin, async (req, res) => {
+  try {
+    const id      = req.params.id;
+    const isVenda = String(id).startsWith('v');
+    const { valor, forma_pagamento, data_agendamento, servico_id, descricao } = req.body;
+
+    if (USE_SUPABASE) {
+      if (isVenda) {
+        const uuid = id.slice(1);
+        const upd = {};
+        if (valor            !== undefined) upd.valor           = Number(valor);
+        if (forma_pagamento  !== undefined) upd.forma_pagamento = forma_pagamento || null;
+        if (data_agendamento !== undefined) upd.data_agendamento = data_agendamento;
+        if (descricao        !== undefined) upd.descricao       = descricao || null;
+        if (servico_id       !== undefined) {
+          const { servico_id: sId, servico_nome: sNome } = resolverServico(servico_id);
+          upd.servico_id = sId; upd.servico_nome = sNome;
+        }
+        const { data, error } = await sb.from('vendas').update(upd).eq('id', uuid).select().single();
+        if (error) throw error;
+        return res.json({ ...data, id: 'v' + data.id });
+      } else {
+        const upd = {};
+        if (valor            !== undefined) upd.valor           = valor !== null && valor !== '' ? Number(valor) : null;
+        if (forma_pagamento  !== undefined) upd.forma_pagamento = forma_pagamento || null;
+        if (data_agendamento !== undefined) upd.data_agendamento = data_agendamento;
+        upd.atualizado_em = new Date().toISOString();
+        const { data, error } = await sb.from('agendamentos').update(upd).eq('id', id).select().single();
+        if (error) throw error;
+        return res.json(data);
+      }
+    }
+
+    const dados = lerDados();
+    if (isVenda) {
+      const idx = dados.vendas.findIndex(v => v.id === id);
+      if (idx === -1) return res.status(404).json({ erro: 'Lançamento não encontrado' });
+      const v = dados.vendas[idx];
+      if (valor            !== undefined) v.valor           = Number(valor);
+      if (forma_pagamento  !== undefined) v.forma_pagamento = forma_pagamento || null;
+      if (data_agendamento !== undefined) v.data_agendamento = data_agendamento;
+      if (descricao        !== undefined) v.descricao       = descricao || null;
+      if (servico_id       !== undefined) {
+        const { servico_id: sId, servico_nome: sNome } = resolverServico(servico_id);
+        v.servico_id = sId; v.servico_nome = sNome;
+      }
+      salvarDados(dados);
+      return res.json(v);
+    } else {
+      const numId = parseInt(id);
+      const idx   = dados.agendamentos.findIndex(a => a.id === numId);
+      if (idx === -1) return res.status(404).json({ erro: 'Lançamento não encontrado' });
+      const ag = dados.agendamentos[idx];
+      if (valor            !== undefined) ag.valor           = valor !== null && valor !== '' ? Number(valor) : null;
+      if (forma_pagamento  !== undefined) ag.forma_pagamento = forma_pagamento || null;
+      if (data_agendamento !== undefined) ag.data_agendamento = data_agendamento;
+      salvarDados(dados);
+      return res.json(ag);
+    }
+
+  } catch (err) {
+    console.error(err.message);
+    return res.status(500).json({ erro: err.message });
+  }
 });
+
+// Excluir lançamento financeiro
+app.delete('/api/admin/financeiro/:id', verificarAdmin, async (req, res) => {
+  try {
+    const id      = req.params.id;
+    const isVenda = String(id).startsWith('v');
+
+    if (USE_SUPABASE) {
+      if (isVenda) {
+        const uuid = id.slice(1);
+        const { error } = await sb.from('vendas').delete().eq('id', uuid);
+        if (error) throw error;
+      } else {
+        const { error } = await sb.from('agendamentos')
+          .update({ valor: null, forma_pagamento: null, atualizado_em: new Date().toISOString() })
+          .eq('id', id);
+        if (error) throw error;
+      }
+      return res.json({ mensagem: isVenda ? 'Lançamento excluído' : 'Pagamento removido' });
+    }
+
+    const dados = lerDados();
+    if (isVenda) {
+      const idx = dados.vendas.findIndex(v => v.id === id);
+      if (idx === -1) return res.status(404).json({ erro: 'Lançamento não encontrado' });
+      dados.vendas.splice(idx, 1);
+    } else {
+      const numId = parseInt(id);
+      const idx   = dados.agendamentos.findIndex(a => a.id === numId);
+      if (idx === -1) return res.status(404).json({ erro: 'Lançamento não encontrado' });
+      dados.agendamentos[idx].valor = null;
+      dados.agendamentos[idx].forma_pagamento = null;
+    }
+    salvarDados(dados);
+    return res.json({ mensagem: isVenda ? 'Lançamento excluído' : 'Pagamento removido' });
+
+  } catch (err) {
+    console.error(err.message);
+    return res.status(500).json({ erro: err.message });
+  }
+});
+
+// ============================================================
+// INICIALIZAÇÃO
+// ============================================================
+if (require.main === module) {
+  app.listen(PORT, () => {
+    console.log('\nDra Sônia Machado — Painel Administrativo');
+    console.log(`Painel : http://localhost:${PORT}`);
+    console.log(`Banco  : ${USE_SUPABASE ? 'Supabase' : 'JSON local (dados.json)'}`);
+    console.log(`Senha  : ${ADMIN_PASSWORD}\n`);
+  });
+}
+
+// Exporta o app para a Vercel
+module.exports = app;
