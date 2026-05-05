@@ -1422,10 +1422,10 @@ function renderAgs(lista, showDate=false){
     const b=BADGE[a.status]||{c:'b-ag',t:a.status};
     const acoes=(a.status==='agendado'||a.status==='reagendado')?`
       <div class="ag-btns">
-        <button class="ab ab-g" onclick="abrirCompareceu(${a.id})">Compareceu</button>
-        <button class="ab ab-r" onclick="atualizar(${a.id},'nao_compareceu')">Não veio</button>
-        <button class="ab ab-a" onclick="abrirReag(${a.id})">Reagendar</button>
-        <button class="ab ab-x" onclick="cancelar(${a.id})">Cancelar</button>
+        <button class="ab ab-g" onclick="abrirCompareceu('${a.id}')">Compareceu</button>
+        <button class="ab ab-r" onclick="atualizar('${a.id}','nao_compareceu')">Não veio</button>
+        <button class="ab ab-a" onclick="abrirReag('${a.id}')">Reagendar</button>
+        <button class="ab ab-x" onclick="cancelar('${a.id}')">Cancelar</button>
       </div>`:
       (a.valor?`<div class="ag-btns"><span style="font-size:.82rem;color:var(--green);font-weight:600">${fmtMoeda(a.valor)} — ${a.forma_pagamento||'—'}</span></div>`:'');
     const timeBlock=showDate
