@@ -74,6 +74,15 @@ function salvarDados(d) {
 // ============================================================
 // HELPERS
 // ============================================================
+const HORARIO_INICIO = 8;
+const HORARIO_FIM    = 20;
+
+function gerarHorarios() {
+  const slots = [];
+  for (let h = HORARIO_INICIO; h < HORARIO_FIM; h++) slots.push(`${pad(h)}:00`);
+  return slots;
+}
+
 function pad(n)     { return String(n).padStart(2, '0'); }
 function isoData(d) { return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`; }
 function isoHoje()  { return isoData(new Date()); }
@@ -173,6 +182,70 @@ app.get(['/admin', '/admin.html'], (req, res) => {
 
 app.get('/api/servicos', (req, res) => {
   res.json([...SERVICOS].sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR')));
+});
+
+// Horários disponíveis para o site público
+app.get('/api/horarios', async (req, res) => {
+  try {
+    const { data } = req.query;
+    if (!data) return res.status(400).json({ erro: 'Data é obrigatória' });
+    const todos = gerarHorarios();
+
+    if (USE_SUPABASE) {
+      const { data: rows, error } = await sb.from('agendamentos')
+        .select('horario').eq('data_agendamento', data).neq('status', 'cancelado');
+      if (error) throw error;
+      const ocupados = (rows || []).map(r => r.horario);
+      return res.json({ data, disponiveis: todos.filter(h => !ocupados.includes(h)), ocupados });
+    }
+
+    const { agendamentos } = lerDados();
+    const ocupados = agendamentos
+      .filter(a => a.data_agendamento === data && a.status !== 'cancelado')
+      .map(a => a.horario);
+    return res.json({ data, disponiveis: todos.filter(h => !ocupados.includes(h)), ocupados });
+  } catch (err) {
+    return res.status(500).json({ erro: err.message });
+  }
+});
+
+// Disponibilidade mensal para o calendário do site público
+app.get('/api/disponibilidade', async (req, res) => {
+  try {
+    const { mes } = req.query;
+    if (!mes) return res.status(400).json({ erro: 'Mês obrigatório' });
+    const todos = gerarHorarios();
+    const [ano, m] = mes.split('-').map(Number);
+    const diasNoMes = new Date(ano, m, 0).getDate();
+
+    if (USE_SUPABASE) {
+      const inicio = `${mes}-01`;
+      const fim    = `${mes}-${pad(diasNoMes)}`;
+      const { data: rows, error } = await sb.from('agendamentos')
+        .select('data_agendamento, horario')
+        .gte('data_agendamento', inicio).lte('data_agendamento', fim)
+        .neq('status', 'cancelado');
+      if (error) throw error;
+      const resultado = {};
+      for (let d = 1; d <= diasNoMes; d++) {
+        const ds = `${ano}-${pad(m)}-${pad(d)}`;
+        const ocupados = (rows || []).filter(r => toDate(r.data_agendamento) === ds).length;
+        resultado[ds] = todos.length - ocupados;
+      }
+      return res.json(resultado);
+    }
+
+    const { agendamentos } = lerDados();
+    const resultado = {};
+    for (let d = 1; d <= diasNoMes; d++) {
+      const ds = `${ano}-${pad(m)}-${pad(d)}`;
+      const ocupados = agendamentos.filter(a => a.data_agendamento === ds && a.status !== 'cancelado').length;
+      resultado[ds] = todos.length - ocupados;
+    }
+    return res.json(resultado);
+  } catch (err) {
+    return res.status(500).json({ erro: err.message });
+  }
 });
 
 // Criar agendamento — compatível com admin.html (formato antigo) e n8n (formato novo)
@@ -441,6 +514,39 @@ app.get('/api/admin/calendario', verificarAdmin, async (req, res) => {
 
   } catch (err) {
     console.error(err.message);
+    return res.status(500).json({ erro: err.message });
+  }
+});
+
+// Bloquear horários (cria registros com status='bloqueado')
+app.post('/api/admin/bloqueios', verificarAdmin, async (req, res) => {
+  try {
+    const { data_agendamento, horarios, motivo } = req.body;
+    if (!data_agendamento || !Array.isArray(horarios) || !horarios.length)
+      return res.status(400).json({ erro: 'data_agendamento e horarios[] são obrigatórios' });
+
+    const registros = horarios.map(h => ({
+      nome_paciente:    'Horário Bloqueado',
+      telefone_paciente: null,
+      servico_nome:     motivo || null,
+      data_agendamento,
+      horario:          h,
+      status:           'bloqueado',
+      origem:           'bloqueio',
+    }));
+
+    if (USE_SUPABASE) {
+      const { data, error } = await sb.from('agendamentos').insert(registros).select();
+      if (error) throw error;
+      return res.status(201).json({ criados: data.length });
+    }
+
+    const dados = lerDados();
+    const criados = registros.map(r => ({ ...r, id: dados.proximoId++, criado_em: agoraISO() }));
+    dados.agendamentos.push(...criados);
+    salvarDados(dados);
+    return res.status(201).json({ criados: criados.length });
+  } catch (err) {
     return res.status(500).json({ erro: err.message });
   }
 });

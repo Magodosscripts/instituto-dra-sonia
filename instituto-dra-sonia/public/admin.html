@@ -270,6 +270,14 @@ body{background:var(--bg);}
 .b-canc{background:#F3F0F0;color:#888;}                  .b-canc::before{background:#BBB;}
 .b-reag{background:var(--amber-bg);color:var(--amber);} .b-reag::before{background:var(--amber);}
 .tag-retorno{display:inline-block;font-size:.6rem;font-weight:700;letter-spacing:.5px;text-transform:uppercase;background:#EDE9FF;color:#6D4DC6;border-radius:4px;padding:2px 7px;margin-left:6px;vertical-align:middle;}
+.b-bloq{background:#F0F0F0;color:#777;} .b-bloq::before{background:#AAA;}
+.ag-card[data-status="bloqueado"]{opacity:.7;background:repeating-linear-gradient(135deg,#FAFAFA,#FAFAFA 8px,#F4F4F4 8px,#F4F4F4 16px);}
+.ag-card[data-status="bloqueado"] .ag-time{color:#AAA;}
+.bloq-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:8px;}
+.bloq-chip{padding:6px 4px;border:1.5px solid #E0D8D0;border-radius:8px;font-size:.78rem;font-weight:600;text-align:center;cursor:pointer;background:#FFF;color:var(--muted);transition:all .15s;}
+.bloq-chip.sel{background:var(--primary);color:#FFF;border-color:var(--primary);}
+.btn-bloquear{padding:7px 14px;border-radius:8px;border:1.5px solid #D0C0C8;background:#FFF;color:var(--muted);font-size:.78rem;font-weight:600;cursor:pointer;}
+.btn-bloquear:hover{background:#F8F0F3;color:var(--primary);border-color:var(--primary);}
 .retorno-toggle{display:flex;align-items:center;gap:8px;margin-top:18px;padding-top:14px;border-top:1px solid #F0EDE8;cursor:pointer;font-size:.84rem;font-weight:600;color:var(--dark);}
 .retorno-toggle input[type=checkbox]{width:16px;height:16px;accent-color:var(--primary);cursor:pointer;}
 .retorno-fields{display:none;margin-top:12px;gap:10px;}
@@ -656,6 +664,7 @@ body{background:var(--bg);}
           <div class="sec-header">
             <div class="sec-title" id="listTitle">Agendamentos de hoje</div>
             <button class="btn-add" onclick="abrirNovoModal()">+ Novo</button>
+            <button class="btn-bloquear" onclick="abrirModalBloqueio()">Bloquear horário</button>
           </div>
           <div class="ag-list" id="agList">
             <div class="empty"><p>Carregando...</p></div>
@@ -999,6 +1008,28 @@ body{background:var(--bg);}
     <div class="modal-footer">
       <button class="mb-cancel" onclick="fecharModal('modalReag')">Cancelar</button>
       <button class="mb-confirm" onclick="confirmarReag()">Confirmar Reagendamento</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── MODAL: Bloquear Horário ── -->
+<div class="modal-bg" id="modalBloqueio">
+  <div class="modal">
+    <div class="modal-header">
+      <h3>Bloquear Horários</h3>
+      <button class="modal-close" onclick="fecharModal('modalBloqueio')">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="mfield"><label>Data</label><input type="date" id="bData"></div>
+      <div class="mfield">
+        <label>Horários a bloquear</label>
+        <div class="bloq-grid" id="bloqGrid"></div>
+      </div>
+      <div class="mfield"><label>Motivo (opcional)</label><input type="text" id="bMotivo" placeholder="Ex: Consulta particular, Imprevisto..."></div>
+    </div>
+    <div class="modal-footer">
+      <button class="mb-cancel" onclick="fecharModal('modalBloqueio')">Cancelar</button>
+      <button class="mb-confirm" onclick="confirmarBloqueio()">Bloquear selecionados</button>
     </div>
   </div>
 </div>
@@ -1431,10 +1462,15 @@ function renderAgs(lista, showDate=false){
     nao_compareceu:{c:'b-falt',t:'Não compareceu'},
     cancelado:     {c:'b-canc',t:'Cancelado'},
     reagendado:    {c:'b-reag',t:'Reagendado'},
+    bloqueado:     {c:'b-bloq',t:'Bloqueado'},
   };
   el.innerHTML=lista.map(a=>{
     const b=BADGE[a.status]||{c:'b-ag',t:a.status};
-    const acoes=(a.status==='agendado'||a.status==='reagendado')?`
+    const acoes=a.status==='bloqueado'?`
+      <div class="ag-btns">
+        <button class="ab ab-x" onclick="desbloquear('${a.id}')">Desbloquear</button>
+      </div>`
+      :(a.status==='agendado'||a.status==='reagendado')?`
       <div class="ag-btns">
         <button class="ab ab-g" onclick="abrirCompareceu('${a.id}')">Compareceu</button>
         <button class="ab ab-r" onclick="atualizar('${a.id}','nao_compareceu')">Não veio</button>
@@ -1451,8 +1487,8 @@ function renderAgs(lista, showDate=false){
     return`<div class="ag-card" id="ag-${a.id}" data-status="${a.status}">
       ${timeBlock}
       <div class="ag-body">
-        <div class="ag-name">${a.nome_paciente}${a.origem==='retorno'?'<span class="tag-retorno">Retorno</span>':''}</div>
-        <div class="ag-sub">${a.servico_nome}</div>
+        <div class="ag-name">${a.status==='bloqueado'?'Horário Bloqueado':(a.nome_paciente+(a.origem==='retorno'?'<span class="tag-retorno">Retorno</span>':''))}</div>
+        <div class="ag-sub">${a.status==='bloqueado'?(a.servico_nome||'Sem motivo informado'):(a.servico_nome||'')}</div>
         <div class="ag-phone">${a.telefone_paciente}</div>
         ${a.observacoes?`<div class="ag-obs">${a.observacoes}</div>`:''}
       </div>
@@ -1479,6 +1515,49 @@ async function cancelar(id){
   if(!confirm('Cancelar este agendamento?'))return;
   await fetch(`/api/admin/agendamentos/${id}`,{method:'DELETE',headers:{'x-admin-password':pwd}});
   toast('Agendamento cancelado.','ok');
+  carregarTudo();
+}
+
+// ── Desbloquear horário ──
+async function desbloquear(id){
+  if(!confirm('Desbloquear este horário?'))return;
+  await fetch(`/api/admin/agendamentos/${id}`,{method:'DELETE',headers:{'x-admin-password':pwd}});
+  toast('Horário desbloqueado.','ok');
+  carregarTudo();
+}
+
+// ── Modal Bloqueio ──
+function abrirModalBloqueio(){
+  const hoje=new Date();
+  document.getElementById('bData').value=`${hoje.getFullYear()}-${String(hoje.getMonth()+1).padStart(2,'0')}-${String(hoje.getDate()).padStart(2,'0')}`;
+  document.getElementById('bMotivo').value='';
+  const grid=document.getElementById('bloqGrid');
+  grid.innerHTML='';
+  for(let h=8;h<20;h++){
+    const slot=`${String(h).padStart(2,'0')}:00`;
+    const btn=document.createElement('button');
+    btn.className='bloq-chip';
+    btn.textContent=slot;
+    btn.dataset.h=slot;
+    btn.onclick=()=>btn.classList.toggle('sel');
+    grid.appendChild(btn);
+  }
+  document.getElementById('modalBloqueio').classList.add('open');
+}
+async function confirmarBloqueio(){
+  const data=document.getElementById('bData').value;
+  const motivo=document.getElementById('bMotivo').value.trim()||null;
+  const horarios=[...document.querySelectorAll('#bloqGrid .bloq-chip.sel')].map(b=>b.dataset.h);
+  if(!data){toast('Selecione uma data.','err');return;}
+  if(!horarios.length){toast('Selecione ao menos um horário.','err');return;}
+  const r=await fetch('/api/admin/bloqueios',{
+    method:'POST',
+    headers:{'Content-Type':'application/json','x-admin-password':pwd},
+    body:JSON.stringify({data_agendamento:data,horarios,motivo}),
+  });
+  if(!r.ok){const e=await r.json();toast(e.erro||'Erro ao bloquear.','err');return;}
+  fecharModal('modalBloqueio');
+  toast(`${horarios.length} horário(s) bloqueado(s).`,'ok');
   carregarTudo();
 }
 
