@@ -1129,6 +1129,34 @@ app.put('/api/admin/clientes/:id', verificarAdmin, async (req, res) => {
   } catch (err) { return res.status(500).json({ erro: err.message }); }
 });
 
+app.delete('/api/admin/clientes/:id', verificarAdmin, async (req, res) => {
+  try {
+    const { id } = req.params;
+    if (USE_SUPABASE) {
+      // Cascata apaga cliente_anamneses e cliente_fotos automaticamente (ON DELETE CASCADE)
+      const { error } = await sb.from('clientes').delete().eq('id', id);
+      if (error) throw error;
+      return res.json({ mensagem: 'Cliente excluído' });
+    }
+    const dados = lerDados();
+    const idx = dados.clientes.findIndex(c => c.id === id);
+    if (idx === -1) return res.status(404).json({ erro: 'Cliente não encontrado' });
+    // Remove fotos locais do disco
+    const fotos = dados.cliente_fotos.filter(f => f.cliente_id === id);
+    fotos.forEach(f => {
+      if (f.url && f.url.startsWith('/uploads/')) {
+        const fp = path.join(__dirname, 'public', f.url);
+        if (fs.existsSync(fp)) fs.unlinkSync(fp);
+      }
+    });
+    dados.clientes.splice(idx, 1);
+    dados.cliente_anamneses = dados.cliente_anamneses.filter(ca => ca.cliente_id !== id);
+    dados.cliente_fotos     = dados.cliente_fotos.filter(f => f.cliente_id !== id);
+    salvarDados(dados);
+    return res.json({ mensagem: 'Cliente excluído' });
+  } catch (err) { return res.status(500).json({ erro: err.message }); }
+});
+
 app.post('/api/admin/clientes/:id/fotos', verificarAdmin, async (req, res) => {
   try {
     const clienteId = req.params.id;

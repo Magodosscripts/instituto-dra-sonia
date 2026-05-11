@@ -1274,6 +1274,7 @@ body{background:var(--bg);}
     </div>
     <div class="modal-footer">
       <button class="mb-cancel" onclick="fecharModal('modalCliente')">Fechar</button>
+      <button class="mb-cancel" style="color:var(--red);border-color:rgba(139,31,31,.2)" onclick="excluirCliente()">Excluir cliente</button>
       <button class="mb-confirm" onclick="salvarCliente()">Salvar dados</button>
     </div>
   </div>
@@ -2177,6 +2178,16 @@ function previewFoto(input){
     document.getElementById('fotoPreviewWrap').style.display='block';
   };
   reader.readAsDataURL(files[0]);
+}
+async function excluirCliente(){
+  if(!_clienteAtual){toast('Nenhum cliente selecionado.','err');return;}
+  if(!confirm(`Excluir o cliente "${_clienteAtual.nome}" permanentemente?\nTodas as fotos e vínculos serão removidos.`)) return;
+  const r=await fetch(`/api/admin/clientes/${_clienteAtual.id}`,{method:'DELETE',headers:{'x-admin-password':pwd}});
+  if(!r.ok){toast('Erro ao excluir cliente.','err');return;}
+  fecharModal('modalCliente');
+  _clienteAtual=null;
+  toast('Cliente excluído.','ok');
+  carregarClientes(document.getElementById('cliSearch').value);
 }
 async function excluirFotoCliente(fotoId){
   if(!_clienteAtual||!confirm('Excluir esta foto?')) return;
