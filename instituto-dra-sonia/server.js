@@ -1,5 +1,6 @@
 'use strict';
 require('dotenv').config();
+require('dotenv').config({ path: '.env.local', override: false });
 
 const express = require('express');
 const cors    = require('cors');
@@ -521,7 +522,7 @@ app.get('/api/admin/calendario', verificarAdmin, async (req, res) => {
 // Bloquear horários (cria registros com status='bloqueado')
 app.post('/api/admin/bloqueios', verificarAdmin, async (req, res) => {
   try {
-    const { data_agendamento, horarios, motivo } = req.body;
+    const { data_agendamento, horarios, motivo, duracao_minutos } = req.body;
     if (!data_agendamento || !Array.isArray(horarios) || !horarios.length)
       return res.status(400).json({ erro: 'data_agendamento e horarios[] são obrigatórios' });
 
@@ -535,17 +536,52 @@ app.post('/api/admin/bloqueios', verificarAdmin, async (req, res) => {
       origem:           'bloqueio',
     }));
 
+    let totalCriados = 0;
+
     if (USE_SUPABASE) {
       const { data, error } = await sb.from('agendamentos').insert(registros).select();
       if (error) throw error;
-      return res.status(201).json({ criados: data.length });
+      totalCriados = data.length;
+    } else {
+      const dados = lerDados();
+      const criados = registros.map(r => ({ ...r, id: dados.proximoId++, criado_em: agoraISO() }));
+      dados.agendamentos.push(...criados);
+      salvarDados(dados);
+      totalCriados = criados.length;
     }
 
-    const dados = lerDados();
-    const criados = registros.map(r => ({ ...r, id: dados.proximoId++, criado_em: agoraISO() }));
-    dados.agendamentos.push(...criados);
-    salvarDados(dados);
-    return res.status(201).json({ criados: criados.length });
+    console.log('Bloqueio salvo localmente');
+
+    // Envia webhook para o n8n (falha silenciosa — não afeta a resposta)
+    const webhookUrl = process.env.N8N_BLOQUEIO_WEBHOOK_URL;
+    if (webhookUrl) {
+      try {
+        const payload = {
+          tipo:             'bloqueio_horarios',
+          origem:           'sistema_admin',
+          data:             data_agendamento,
+          horarios,
+          motivo:           motivo || null,
+          duracao_minutos:  duracao_minutos || 60,
+        };
+        const resp = await fetch(webhookUrl, {
+          method:  'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body:    JSON.stringify(payload),
+        });
+        if (resp.ok) {
+          console.log('Webhook n8n de bloqueio enviado com sucesso');
+        } else {
+          console.warn(`Falha ao enviar bloqueio para n8n — status ${resp.status}`);
+        }
+      } catch (webhookErr) {
+        console.warn('Falha ao enviar bloqueio para n8n:', webhookErr.message);
+      }
+    } else {
+      console.log('Webhook n8n não está configurado (N8N_BLOQUEIO_WEBHOOK_URL ausente)');
+    }
+
+    return res.status(201).json({ criados: totalCriados });
   } catch (err) {
     return res.status(500).json({ erro: err.message });
   }
