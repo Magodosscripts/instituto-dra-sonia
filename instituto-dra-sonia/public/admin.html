@@ -499,7 +499,8 @@ body{background:var(--bg);}
 .foto-preview-wrap{margin-bottom:14px;}
 .foto-preview-img{max-width:100%;max-height:150px;border-radius:var(--r-xs);border:1px solid var(--border-l);}
 .foto-dl{position:absolute;top:5px;right:5px;background:rgba(0,0,0,.55);color:#fff;border-radius:50%;width:26px;height:26px;display:flex;align-items:center;justify-content:center;font-size:.78rem;text-decoration:none;opacity:0;transition:opacity .18s;line-height:1;}
-.foto-card:hover .foto-dl{opacity:1;}
+.foto-del{position:absolute;top:5px;left:5px;background:rgba(139,31,31,.75);color:#fff;border:none;border-radius:50%;width:26px;height:26px;display:flex;align-items:center;justify-content:center;font-size:.75rem;cursor:pointer;opacity:0;transition:opacity .18s;line-height:1;padding:0;}
+.foto-card:hover .foto-dl,.foto-card:hover .foto-del{opacity:1;}
 .foto-sel-count{font-size:.78rem;color:var(--wine);font-weight:600;margin-top:6px;}
 
 /* ── IMPRESSÃO ── */
@@ -2111,6 +2112,7 @@ function _preencherModalCliente(c){
     <div class="foto-card">
       ${f.url?`<img class="foto-img" src="${f.url}" alt="${f.tipo||'foto'}">`:`<div class="foto-img-ph">🖼</div>`}
       ${f.url?`<a class="foto-dl" href="${f.url}" download="${f.nome_arquivo||'foto'}" title="Baixar foto">⬇</a>`:''}
+      <button class="foto-del" onclick="excluirFotoCliente('${f.id}')" title="Excluir foto">✕</button>
       <div class="foto-info">
         <div class="foto-tipo">${f.tipo||''}</div>
         ${f.observacao?`<div class="foto-obs">${f.observacao}</div>`:''}
@@ -2175,6 +2177,14 @@ function previewFoto(input){
     document.getElementById('fotoPreviewWrap').style.display='block';
   };
   reader.readAsDataURL(files[0]);
+}
+async function excluirFotoCliente(fotoId){
+  if(!_clienteAtual||!confirm('Excluir esta foto?')) return;
+  const r=await fetch(`/api/admin/clientes/${_clienteAtual.id}/fotos/${fotoId}`,{method:'DELETE',headers:{'x-admin-password':pwd}});
+  if(!r.ok){toast('Erro ao excluir foto.','err');return;}
+  toast('Foto excluída.','ok');
+  await abrirCliente(_clienteAtual.id);
+  cliTab('fotos');
 }
 async function enviarFoto(){
   if(!_clienteAtual){toast('Salve o cliente primeiro.','err');return;}
