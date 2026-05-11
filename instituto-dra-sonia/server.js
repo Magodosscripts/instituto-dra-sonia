@@ -256,7 +256,7 @@ function verificarN8N(req, res, next) {
 }
 
 app.use(cors());
-app.use(express.json());
+app.use(express.json({ limit: '15mb' }));
 app.use(express.static(path.join(__dirname, 'public'), { index: 'admin.html' }));
 
 app.get(['/admin', '/admin.html'], (req, res) => {
@@ -1145,7 +1145,14 @@ app.post('/api/admin/clientes/:id/fotos', verificarAdmin, async (req, res) => {
       const { error: upErr } = await sb.storage
         .from('clientes-fotos').upload(storagePath, buffer, { contentType: mimeType, upsert: false });
       if (upErr) {
-        console.warn('Supabase Storage indisponível — metadado salvo sem URL:', upErr.message);
+        const msg = upErr.message || '';
+        if (msg.includes('Bucket not found') || msg.includes('bucket') || upErr.statusCode === 400) {
+          return res.status(500).json({ erro: 'Bucket clientes-fotos não encontrado no Supabase Storage. Crie o bucket como público.' });
+        }
+        if (upErr.statusCode === 403 || msg.includes('permission') || msg.includes('policy')) {
+          return res.status(500).json({ erro: 'Erro de permissão no Supabase Storage. Verifique as policies do bucket.' });
+        }
+        console.warn('Supabase Storage — salvando sem URL:', msg);
       } else {
         const { data: urlData } = sb.storage.from('clientes-fotos').getPublicUrl(storagePath);
         url = urlData?.publicUrl || null;
@@ -1154,7 +1161,7 @@ app.post('/api/admin/clientes/:id/fotos', verificarAdmin, async (req, res) => {
         cliente_id: clienteId, url, tipo: tipo||'outros',
         observacao: observacao||null, nome_arquivo: nome_arquivo||storagePath,
       }).select().single();
-      if (error) throw error;
+      if (error) return res.status(500).json({ erro: 'Erro ao salvar foto no banco: ' + error.message });
       return res.status(201).json(foto);
     }
     const dados = lerDados();
