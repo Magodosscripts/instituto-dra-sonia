@@ -58,18 +58,104 @@ const DB = path.join(__dirname, 'dados.json');
 
 function lerDados() {
   if (!fs.existsSync(DB)) {
-    const inicial = { proximoId: 1, agendamentos: [], vendas: [], anamneses: [], servicos: SERVICOS };
+    const inicial = { proximoId: 1, agendamentos: [], vendas: [], anamneses: [], servicos: SERVICOS, clientes: [], cliente_anamneses: [], cliente_fotos: [] };
     fs.writeFileSync(DB, JSON.stringify(inicial, null, 2), 'utf8');
     return inicial;
   }
   const d = JSON.parse(fs.readFileSync(DB, 'utf8'));
-  if (!d.vendas)    d.vendas    = [];
-  if (!d.anamneses) d.anamneses = [];
+  if (!d.vendas)            d.vendas            = [];
+  if (!d.anamneses)         d.anamneses         = [];
+  if (!d.clientes)          d.clientes          = [];
+  if (!d.cliente_anamneses) d.cliente_anamneses = [];
+  if (!d.cliente_fotos)     d.cliente_fotos     = [];
   return d;
 }
 
 function salvarDados(d) {
   fs.writeFileSync(DB, JSON.stringify(d, null, 2), 'utf8');
+}
+
+// Vincula (ou cria) cliente ao salvar anamnese — fire-and-forget
+async function vincularClienteAnamnese(anamBody, anamId) {
+  const nome       = anamBody.nome       || null;
+  const telefone   = anamBody.telefone   || null;
+  const nascimento = anamBody.nascimento || null;
+  const procedimento = anamBody.procedimento || null;
+  if (!nome) return;
+
+  if (USE_SUPABASE) {
+    let clienteId = null;
+
+    if (telefone) {
+      const { data } = await sb.from('clientes').select('id').eq('telefone', telefone).maybeSingle();
+      if (data) clienteId = data.id;
+    }
+    if (!clienteId && nome && nascimento) {
+      const { data } = await sb.from('clientes').select('id')
+        .ilike('nome', nome).eq('data_nascimento', nascimento).maybeSingle();
+      if (data) clienteId = data.id;
+    }
+
+    if (clienteId) {
+      const { data: cli } = await sb.from('clientes')
+        .select('telefone,data_nascimento,procedimento_interesse').eq('id', clienteId).single();
+      const upd = { updated_at: new Date().toISOString() };
+      if (cli && !cli.telefone && telefone)                    upd.telefone = telefone;
+      if (cli && !cli.data_nascimento && nascimento)           upd.data_nascimento = nascimento;
+      if (cli && !cli.procedimento_interesse && procedimento)  upd.procedimento_interesse = procedimento;
+      if (Object.keys(upd).length > 1) await sb.from('clientes').update(upd).eq('id', clienteId);
+    } else {
+      const { data: novo } = await sb.from('clientes').insert({
+        nome,
+        telefone:               telefone   || null,
+        data_nascimento:        nascimento  || null,
+        procedimento_interesse: procedimento || null,
+      }).select('id').single();
+      if (novo) clienteId = novo.id;
+    }
+
+    if (clienteId && anamId) {
+      const { data: jaExiste } = await sb.from('cliente_anamneses')
+        .select('id').eq('cliente_id', clienteId).eq('anamnese_id', String(anamId)).maybeSingle();
+      if (!jaExiste)
+        await sb.from('cliente_anamneses').insert({ cliente_id: clienteId, anamnese_id: String(anamId) });
+    }
+    return;
+  }
+
+  // Fallback JSON
+  const dados = lerDados();
+  let cliente = null;
+  if (telefone)
+    cliente = dados.clientes.find(c => c.telefone === telefone);
+  if (!cliente && nome && nascimento)
+    cliente = dados.clientes.find(c =>
+      c.nome.toLowerCase() === nome.toLowerCase() && c.data_nascimento === nascimento
+    );
+
+  if (cliente) {
+    if (!cliente.telefone && telefone)                   cliente.telefone = telefone;
+    if (!cliente.data_nascimento && nascimento)          cliente.data_nascimento = nascimento;
+    if (!cliente.procedimento_interesse && procedimento) cliente.procedimento_interesse = procedimento;
+    cliente.updated_at = agoraISO();
+  } else {
+    cliente = {
+      id: 'c' + Date.now(), nome,
+      telefone: telefone || null, email: null, data_nascimento: nascimento || null,
+      cpf: null, endereco: null, queixa_principal: null,
+      procedimento_interesse: procedimento || null, observacoes: null,
+      created_at: agoraISO(), updated_at: agoraISO(),
+    };
+    dados.clientes.push(cliente);
+  }
+
+  const jaExiste = dados.cliente_anamneses.find(
+    ca => ca.cliente_id === cliente.id && ca.anamnese_id === String(anamId)
+  );
+  if (!jaExiste)
+    dados.cliente_anamneses.push({ id: 'ca' + Date.now(), cliente_id: cliente.id, anamnese_id: String(anamId), created_at: agoraISO() });
+
+  salvarDados(dados);
 }
 
 // ============================================================
@@ -723,6 +809,7 @@ app.post('/api/admin/anamneses', verificarAdmin, async (req, res) => {
         respostas,
       }).select().single();
       if (error) throw error;
+      vincularClienteAnamnese(req.body, data.id).catch(e => console.warn('vincular cliente:', e.message));
       return res.status(201).json(flattenAnamnese(data));
     }
 
@@ -730,6 +817,7 @@ app.post('/api/admin/anamneses', verificarAdmin, async (req, res) => {
     const ficha = { id: 'f' + Date.now(), criado_em: agoraISO(), ...req.body };
     dados.anamneses.unshift(ficha);
     salvarDados(dados);
+    vincularClienteAnamnese(req.body, ficha.id).catch(e => console.warn('vincular cliente:', e.message));
     return res.status(201).json(ficha);
 
   } catch (err) {
@@ -921,6 +1009,186 @@ app.delete('/api/admin/financeiro/:id', verificarAdmin, async (req, res) => {
     console.error(err.message);
     return res.status(500).json({ erro: err.message });
   }
+});
+
+// ============================================================
+// ROTAS CLIENTES
+// ============================================================
+
+app.get('/api/admin/clientes', verificarAdmin, async (req, res) => {
+  try {
+    const { busca } = req.query;
+    if (USE_SUPABASE) {
+      let q = sb.from('clientes').select('id,nome,telefone,email,procedimento_interesse,created_at').order('nome');
+      if (busca) q = q.or(`nome.ilike.%${busca}%,telefone.ilike.%${busca}%,email.ilike.%${busca}%`);
+      const { data, error } = await q.limit(100);
+      if (error) throw error;
+      return res.json(data || []);
+    }
+    let { clientes } = lerDados();
+    if (busca) {
+      const t = busca.toLowerCase();
+      clientes = clientes.filter(c =>
+        (c.nome||'').toLowerCase().includes(t) ||
+        (c.telefone||'').includes(t) ||
+        (c.email||'').toLowerCase().includes(t)
+      );
+    }
+    return res.json(clientes.slice(0, 100));
+  } catch (err) { return res.status(500).json({ erro: err.message }); }
+});
+
+app.get('/api/admin/clientes/:id', verificarAdmin, async (req, res) => {
+  try {
+    const { id } = req.params;
+    if (USE_SUPABASE) {
+      const { data: cli, error } = await sb.from('clientes').select('*').eq('id', id).single();
+      if (error) throw error;
+      const { data: links } = await sb.from('cliente_anamneses').select('anamnese_id').eq('cliente_id', id);
+      const anamIds = (links || []).map(l => l.anamnese_id);
+      let anams = [];
+      if (anamIds.length) {
+        const { data: aData } = await sb.from('anamneses')
+          .select('id,criado_em,procedimento,nome').in('id', anamIds).order('criado_em', { ascending: false });
+        anams = aData || [];
+      }
+      const { data: fotos } = await sb.from('cliente_fotos').select('*').eq('cliente_id', id).order('created_at', { ascending: false });
+      return res.json({ ...cli, anamneses: anams, fotos: fotos || [] });
+    }
+    const dados = lerDados();
+    const cli = dados.clientes.find(c => c.id === id);
+    if (!cli) return res.status(404).json({ erro: 'Cliente não encontrado' });
+    const anamIds = dados.cliente_anamneses.filter(ca => ca.cliente_id === id).map(ca => ca.anamnese_id);
+    const anams   = dados.anamneses.filter(a => anamIds.includes(String(a.id)));
+    const fotos   = dados.cliente_fotos.filter(f => f.cliente_id === id);
+    return res.json({ ...cli, anamneses: anams, fotos });
+  } catch (err) { return res.status(500).json({ erro: err.message }); }
+});
+
+app.post('/api/admin/clientes', verificarAdmin, async (req, res) => {
+  try {
+    const { nome, telefone, email, data_nascimento, cpf, endereco, queixa_principal, procedimento_interesse, observacoes } = req.body;
+    if (!nome) return res.status(400).json({ erro: 'Nome é obrigatório' });
+    if (USE_SUPABASE) {
+      const { data, error } = await sb.from('clientes').insert({
+        nome, telefone: telefone||null, email: email||null, data_nascimento: data_nascimento||null,
+        cpf: cpf||null, endereco: endereco||null, queixa_principal: queixa_principal||null,
+        procedimento_interesse: procedimento_interesse||null, observacoes: observacoes||null,
+      }).select().single();
+      if (error) throw error;
+      return res.status(201).json({ ...data, anamneses: [], fotos: [] });
+    }
+    const dados = lerDados();
+    const novo = {
+      id: 'c' + Date.now(), nome,
+      telefone: telefone||null, email: email||null, data_nascimento: data_nascimento||null,
+      cpf: cpf||null, endereco: endereco||null, queixa_principal: queixa_principal||null,
+      procedimento_interesse: procedimento_interesse||null, observacoes: observacoes||null,
+      created_at: agoraISO(), updated_at: agoraISO(),
+    };
+    dados.clientes.push(novo);
+    salvarDados(dados);
+    return res.status(201).json({ ...novo, anamneses: [], fotos: [] });
+  } catch (err) { return res.status(500).json({ erro: err.message }); }
+});
+
+app.put('/api/admin/clientes/:id', verificarAdmin, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { nome, telefone, email, data_nascimento, cpf, endereco, queixa_principal, procedimento_interesse, observacoes } = req.body;
+    if (USE_SUPABASE) {
+      const upd = { updated_at: new Date().toISOString() };
+      if (nome                   !== undefined) upd.nome                   = nome;
+      if (telefone               !== undefined) upd.telefone               = telefone||null;
+      if (email                  !== undefined) upd.email                  = email||null;
+      if (data_nascimento        !== undefined) upd.data_nascimento        = data_nascimento||null;
+      if (cpf                    !== undefined) upd.cpf                    = cpf||null;
+      if (endereco               !== undefined) upd.endereco               = endereco||null;
+      if (queixa_principal       !== undefined) upd.queixa_principal       = queixa_principal||null;
+      if (procedimento_interesse !== undefined) upd.procedimento_interesse = procedimento_interesse||null;
+      if (observacoes            !== undefined) upd.observacoes            = observacoes||null;
+      const { data, error } = await sb.from('clientes').update(upd).eq('id', id).select().single();
+      if (error) throw error;
+      return res.json(data);
+    }
+    const dados = lerDados();
+    const cli = dados.clientes.find(c => c.id === id);
+    if (!cli) return res.status(404).json({ erro: 'Cliente não encontrado' });
+    if (nome                   !== undefined) cli.nome                   = nome;
+    if (telefone               !== undefined) cli.telefone               = telefone||null;
+    if (email                  !== undefined) cli.email                  = email||null;
+    if (data_nascimento        !== undefined) cli.data_nascimento        = data_nascimento||null;
+    if (cpf                    !== undefined) cli.cpf                    = cpf||null;
+    if (endereco               !== undefined) cli.endereco               = endereco||null;
+    if (queixa_principal       !== undefined) cli.queixa_principal       = queixa_principal||null;
+    if (procedimento_interesse !== undefined) cli.procedimento_interesse = procedimento_interesse||null;
+    if (observacoes            !== undefined) cli.observacoes            = observacoes||null;
+    cli.updated_at = agoraISO();
+    salvarDados(dados);
+    return res.json(cli);
+  } catch (err) { return res.status(500).json({ erro: err.message }); }
+});
+
+app.post('/api/admin/clientes/:id/fotos', verificarAdmin, async (req, res) => {
+  try {
+    const clienteId = req.params.id;
+    const { base64, tipo, observacao, nome_arquivo } = req.body;
+    if (!base64) return res.status(400).json({ erro: 'Imagem (base64) é obrigatória' });
+    const matches = base64.match(/^data:([A-Za-z-+/]+);base64,(.+)$/);
+    if (!matches) return res.status(400).json({ erro: 'Formato de imagem inválido' });
+    const mimeType    = matches[1];
+    const buffer      = Buffer.from(matches[2], 'base64');
+    const ext         = (mimeType.split('/')[1] || 'jpg').split('+')[0];
+    const storagePath = `${clienteId}/${Date.now()}.${ext}`;
+    let url = null;
+    if (USE_SUPABASE) {
+      const { error: upErr } = await sb.storage
+        .from('clientes-fotos').upload(storagePath, buffer, { contentType: mimeType, upsert: false });
+      if (upErr) {
+        console.warn('Supabase Storage indisponível — metadado salvo sem URL:', upErr.message);
+      } else {
+        const { data: urlData } = sb.storage.from('clientes-fotos').getPublicUrl(storagePath);
+        url = urlData?.publicUrl || null;
+      }
+      const { data: foto, error } = await sb.from('cliente_fotos').insert({
+        cliente_id: clienteId, url, tipo: tipo||'outros',
+        observacao: observacao||null, nome_arquivo: nome_arquivo||storagePath,
+      }).select().single();
+      if (error) throw error;
+      return res.status(201).json(foto);
+    }
+    const dados = lerDados();
+    const foto = {
+      id: 'f' + Date.now(), cliente_id: clienteId, url: null,
+      tipo: tipo||'outros', observacao: observacao||null,
+      nome_arquivo: nome_arquivo||null, created_at: agoraISO(),
+    };
+    dados.cliente_fotos.push(foto);
+    salvarDados(dados);
+    return res.status(201).json(foto);
+  } catch (err) { return res.status(500).json({ erro: err.message }); }
+});
+
+app.delete('/api/admin/clientes/:id/fotos/:fotoId', verificarAdmin, async (req, res) => {
+  try {
+    const { id: clienteId, fotoId } = req.params;
+    if (USE_SUPABASE) {
+      const { data: foto } = await sb.from('cliente_fotos').select('url').eq('id', fotoId).single();
+      if (foto?.url) {
+        const filePath = foto.url.split('/clientes-fotos/').pop();
+        if (filePath) await sb.storage.from('clientes-fotos').remove([filePath]);
+      }
+      const { error } = await sb.from('cliente_fotos').delete().eq('id', fotoId).eq('cliente_id', clienteId);
+      if (error) throw error;
+      return res.json({ mensagem: 'Foto removida' });
+    }
+    const dados = lerDados();
+    const idx = dados.cliente_fotos.findIndex(f => f.id === fotoId && f.cliente_id === clienteId);
+    if (idx === -1) return res.status(404).json({ erro: 'Foto não encontrada' });
+    dados.cliente_fotos.splice(idx, 1);
+    salvarDados(dados);
+    return res.json({ mensagem: 'Foto removida' });
+  } catch (err) { return res.status(500).json({ erro: err.message }); }
 });
 
 // ============================================================

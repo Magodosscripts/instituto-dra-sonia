@@ -461,6 +461,44 @@ body{background:var(--bg);}
 .anam-assleg{font-size:.73rem;color:var(--muted);margin-top:10px;}
 .print-header{display:none;}
 
+/* ── CLIENTES ── */
+.cli-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:16px;}
+.cli-card{background:var(--white);border-radius:var(--r-md);padding:20px 22px;border:1px solid var(--border-l);box-shadow:var(--sh-sm);cursor:pointer;transition:var(--t);position:relative;overflow:hidden;}
+.cli-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,var(--rose),var(--wine));}
+.cli-card:hover{transform:translateY(-3px);box-shadow:var(--sh);}
+.cli-name{font-size:1rem;font-weight:700;color:var(--text);margin-bottom:4px;}
+.cli-phone{font-size:.82rem;color:var(--muted);margin-top:2px;}
+.cli-email{font-size:.79rem;color:var(--muted);margin-top:2px;}
+.cli-proc{font-size:.75rem;color:var(--wine-l);margin-top:6px;font-weight:500;}
+.cli-meta{font-size:.7rem;color:var(--muted);margin-top:10px;padding-top:10px;border-top:1px solid var(--border-l);}
+.cli-modal-tabs{display:flex;gap:0;border-bottom:2px solid var(--border-l);margin-bottom:20px;}
+.cli-mtab{padding:10px 20px;font-size:.78rem;font-weight:600;cursor:pointer;color:var(--muted);border-bottom:2px solid transparent;margin-bottom:-2px;transition:var(--t);background:none;border-top:none;border-left:none;border-right:none;font-family:"Segoe UI",Roboto,Arial,sans-serif;}
+.cli-mtab.active{color:var(--wine);border-bottom-color:var(--wine);}
+.cli-section{display:none;}.cli-section.active{display:block;}
+.cli-field-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;}
+@media(max-width:540px){.cli-field-row{grid-template-columns:1fr;}}
+.cli-field{display:flex;flex-direction:column;gap:4px;}
+.cli-field label{font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--muted);}
+.cli-field input,.cli-field textarea{padding:10px 14px;border:1.5px solid var(--border);border-radius:var(--r-xs);font-size:.88rem;font-family:"Segoe UI",Roboto,Arial,sans-serif;color:var(--text);background:#FAFAFA;transition:var(--t);}
+.cli-field input:focus,.cli-field textarea:focus{outline:none;border-color:var(--wine-l);background:#fff;box-shadow:0 0 0 3px rgba(107,31,56,.06);}
+.anam-hist-row{padding:11px 0;border-bottom:1px dashed var(--border-l);font-size:.84rem;display:flex;align-items:center;gap:12px;}
+.anam-hist-row:last-child{border:none;}
+.anam-hist-date{font-weight:600;min-width:94px;color:var(--text2);}
+.anam-hist-proc{color:var(--wine-l);flex:1;font-weight:500;}
+.foto-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:10px;margin-bottom:16px;}
+.foto-card{border-radius:var(--r-xs);overflow:hidden;border:1px solid var(--border-l);background:var(--bg);position:relative;}
+.foto-img{width:100%;height:100px;object-fit:cover;display:block;background:var(--bg2);}
+.foto-img-ph{width:100%;height:100px;display:flex;align-items:center;justify-content:center;font-size:2rem;background:var(--bg2);}
+.foto-info{padding:7px 9px;}
+.foto-tipo{font-size:.61rem;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--wine);}
+.foto-obs{font-size:.71rem;color:var(--muted);margin-top:2px;word-break:break-word;}
+.foto-data{font-size:.64rem;color:var(--border);margin-top:2px;}
+.tipo-btn-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;}
+.tipo-btn{padding:6px 16px;border-radius:50px;border:1.5px solid var(--border);font-size:.73rem;font-weight:600;cursor:pointer;background:var(--white);color:var(--muted);transition:var(--t);font-family:"Segoe UI",Roboto,Arial,sans-serif;}
+.tipo-btn.sel{background:var(--wine);color:#fff;border-color:var(--wine);}
+.foto-preview-wrap{margin-bottom:14px;}
+.foto-preview-img{max-width:100%;max-height:150px;border-radius:var(--r-xs);border:1px solid var(--border-l);}
+
 /* ── IMPRESSÃO ── */
 @media print{
   *{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important;}
@@ -571,6 +609,9 @@ body{background:var(--bg);}
       </div>
       <div class="tab" data-tab="anamnese" onclick="showTab('anamnese')">
         <span>Anamnese</span>
+      </div>
+      <div class="tab" data-tab="clientes" onclick="showTab('clientes')">
+        <span>Clientes</span>
       </div>
     </div>
     <div class="topbar-right">
@@ -942,6 +983,20 @@ body{background:var(--bg);}
 
     </div>
 
+    <!-- ── ABA CLIENTES ── -->
+    <div class="tab-pane" id="pane-clientes">
+      <div class="sec-header" style="margin-bottom:20px;">
+        <div class="sec-title">Clientes</div>
+        <button class="btn-add" onclick="abrirNovoCliente()">+ Novo cliente</button>
+      </div>
+      <div class="search-bar" style="margin-bottom:22px;">
+        <input type="text" class="search-input" id="cliSearch" placeholder="Buscar por nome, telefone ou e-mail..." oninput="buscarClientes(this.value)">
+      </div>
+      <div id="cliGrid" class="cli-grid">
+        <div class="empty"><div class="empty-icon">👤</div><p>Nenhum cliente ainda.<br>Clientes são criados automaticamente ao salvar uma anamnese.</p></div>
+      </div>
+    </div>
+
   </div>
 </div>
 
@@ -1147,6 +1202,72 @@ body{background:var(--bg);}
   </div>
 </div>
 
+<!-- ── MODAL: Cliente ── -->
+<div class="modal-bg" id="modalCliente">
+  <div class="modal" style="max-width:660px;">
+    <div class="modal-header">
+      <div>
+        <div class="modal-title" id="cliModalNome">Cliente</div>
+        <div class="modal-sub" id="cliModalSub"></div>
+      </div>
+      <button class="modal-close" onclick="fecharModal('modalCliente')">✕</button>
+    </div>
+    <div class="modal-body" style="overflow-y:auto;max-height:70vh;">
+      <div class="cli-modal-tabs">
+        <button class="cli-mtab active" onclick="cliTab('dados')">Dados</button>
+        <button class="cli-mtab" onclick="cliTab('anamneses')">Anamneses</button>
+        <button class="cli-mtab" onclick="cliTab('fotos')">Fotos</button>
+      </div>
+      <!-- Dados -->
+      <div class="cli-section active" id="cliSec-dados">
+        <div class="cli-field-row">
+          <div class="cli-field"><label>Nome</label><input id="cliNome" type="text" placeholder="Nome completo"></div>
+          <div class="cli-field"><label>Telefone</label><input id="cliTelefone" type="text" placeholder="(99) 99999-9999" oninput="maskFone(this)"></div>
+        </div>
+        <div class="cli-field-row">
+          <div class="cli-field"><label>E-mail</label><input id="cliEmail" type="email" placeholder="email@exemplo.com"></div>
+          <div class="cli-field"><label>Nascimento</label><input id="cliNascimento" type="date"></div>
+        </div>
+        <div class="cli-field-row">
+          <div class="cli-field"><label>CPF</label><input id="cliCpf" type="text" placeholder="000.000.000-00"></div>
+          <div class="cli-field"><label>Procedimento / Interesse</label><input id="cliProcedimento" type="text" placeholder="Ex: Botox, Harmonização..."></div>
+        </div>
+        <div class="cli-field" style="margin-bottom:12px"><label>Endereço</label><input id="cliEndereco" type="text" placeholder="Rua, número, bairro, cidade"></div>
+        <div class="cli-field" style="margin-bottom:12px"><label>Queixa principal</label><input id="cliQueixa" type="text" placeholder="Queixa ou preocupação principal"></div>
+        <div class="cli-field"><label>Observações gerais</label><textarea id="cliObs" rows="3" style="resize:vertical" placeholder="Notas internas sobre a cliente..."></textarea></div>
+      </div>
+      <!-- Anamneses -->
+      <div class="cli-section" id="cliSec-anamneses">
+        <div id="cliAnamList"><div class="empty"><p>Nenhuma anamnese vinculada ainda.</p></div></div>
+      </div>
+      <!-- Fotos -->
+      <div class="cli-section" id="cliSec-fotos">
+        <div id="cliGaleria" class="foto-grid"></div>
+        <div style="border-top:1px solid var(--border-l);padding-top:16px;margin-top:4px;">
+          <div style="font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--muted);margin-bottom:10px;">Adicionar foto</div>
+          <div class="tipo-btn-row">
+            <button class="tipo-btn sel" data-tipo="antes" onclick="selTipoFoto(this)">Antes</button>
+            <button class="tipo-btn" data-tipo="depois" onclick="selTipoFoto(this)">Depois</button>
+            <button class="tipo-btn" data-tipo="avaliacao" onclick="selTipoFoto(this)">Avaliação</button>
+            <button class="tipo-btn" data-tipo="outros" onclick="selTipoFoto(this)">Outros</button>
+          </div>
+          <div class="cli-field" style="margin-bottom:12px"><label>Observação (opcional)</label><input id="fotoObs" type="text" placeholder="Ex: 15 dias após procedimento"></div>
+          <div class="foto-preview-wrap" id="fotoPreviewWrap" style="display:none"><img id="fotoPreview" class="foto-preview-img" alt="preview"></div>
+          <input type="file" id="fotoFileInput" accept="image/*" style="display:none" onchange="previewFoto(this)">
+          <div style="display:flex;gap:10px;margin-top:4px;flex-wrap:wrap;">
+            <button class="btn-sec" onclick="document.getElementById('fotoFileInput').click()">📎 Escolher foto</button>
+            <button class="btn-salvar" onclick="enviarFoto()">Salvar foto</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="mb-cancel" onclick="fecharModal('modalCliente')">Fechar</button>
+      <button class="mb-confirm" onclick="salvarCliente()">Salvar dados</button>
+    </div>
+  </div>
+</div>
+
 <div class="toast" id="toast"></div>
 
 <script>
@@ -1219,6 +1340,7 @@ function showTab(tab){
   document.getElementById(`pane-${tab}`).classList.add('active');
   if(tab==='financeiro') carregarFinanceiro();
   if(tab==='anamnese') carregarFichas();
+  if(tab==='clientes') carregarClientes();
 }
 
 // ── Calendário ──
@@ -1915,6 +2037,142 @@ function _preencherAnamnese(f){
   radio('q8',f.q8);radio('q9',f.q9);radio('q10',f.q10);radio('q11',f.q11);
   radio('q12',f.q12);radio('q_conf',f.q_conf);
   set('a_incomoda',f.incomoda);set('a_resultado',f.resultado);
+}
+
+// ── Aba Clientes ──
+let _clienteAtual=null, _cliTipoFoto='antes';
+
+async function carregarClientes(busca=''){
+  const url=busca?`/api/admin/clientes?busca=${encodeURIComponent(busca)}`:'/api/admin/clientes';
+  try{const r=await fetch(url,{headers:{'x-admin-password':pwd}});renderClientes(await r.json());}
+  catch{renderClientes([]);}
+}
+function renderClientes(lista){
+  const el=document.getElementById('cliGrid');
+  if(!lista.length){el.innerHTML='<div class="empty"><div class="empty-icon">👤</div><p>Nenhum cliente encontrado.</p></div>';return;}
+  el.innerHTML=lista.map(c=>`
+    <div class="cli-card" onclick="abrirCliente('${c.id}')">
+      <div class="cli-name">${c.nome||''}</div>
+      ${c.telefone?`<div class="cli-phone">📞 ${c.telefone}</div>`:''}
+      ${c.email?`<div class="cli-email">✉ ${c.email}</div>`:''}
+      ${c.procedimento_interesse?`<div class="cli-proc">${c.procedimento_interesse}</div>`:''}
+      <div class="cli-meta">Cadastrado em ${(c.created_at||'').slice(0,10)||'-'}</div>
+    </div>`).join('');
+}
+let _cliTimer;
+function buscarClientes(v){clearTimeout(_cliTimer);_cliTimer=setTimeout(()=>carregarClientes(v),320);}
+
+async function abrirCliente(id){
+  try{
+    const r=await fetch(`/api/admin/clientes/${id}`,{headers:{'x-admin-password':pwd}});
+    const data=await r.json();
+    _clienteAtual=data;
+    _preencherModalCliente(data);
+    document.getElementById('modalCliente').classList.add('open');
+    cliTab('dados');
+  }catch{toast('Erro ao carregar cliente.','err');}
+}
+function abrirNovoCliente(){
+  _clienteAtual=null;
+  _preencherModalCliente({});
+  document.getElementById('modalCliente').classList.add('open');
+  cliTab('dados');
+}
+function _preencherModalCliente(c){
+  document.getElementById('cliModalNome').textContent=c.nome||'Novo cliente';
+  document.getElementById('cliModalSub').textContent=c.telefone||'';
+  ['cliNome','cliTelefone','cliEmail','cliCpf','cliProcedimento','cliEndereco','cliQueixa','cliObs'].forEach(id=>{
+    const map={cliNome:'nome',cliTelefone:'telefone',cliEmail:'email',cliCpf:'cpf',
+               cliProcedimento:'procedimento_interesse',cliEndereco:'endereco',
+               cliQueixa:'queixa_principal',cliObs:'observacoes'};
+    document.getElementById(id).value=c[map[id]]||'';
+  });
+  document.getElementById('cliNascimento').value=c.data_nascimento||'';
+  const aEl=document.getElementById('cliAnamList');
+  const anams=c.anamneses||[];
+  aEl.innerHTML=anams.length?anams.map(a=>`
+    <div class="anam-hist-row">
+      <div class="anam-hist-date">${(a.criado_em||'').slice(0,10)||'-'}</div>
+      <div class="anam-hist-proc">${a.procedimento||'Anamnese'}</div>
+    </div>`).join(''):'<div class="empty"><p>Nenhuma anamnese vinculada.</p></div>';
+  const fotos=c.fotos||[];
+  const gEl=document.getElementById('cliGaleria');
+  gEl.innerHTML=fotos.length?fotos.map(f=>`
+    <div class="foto-card">
+      ${f.url?`<img class="foto-img" src="${f.url}" alt="${f.tipo||'foto'}">`:`<div class="foto-img-ph">🖼</div>`}
+      <div class="foto-info">
+        <div class="foto-tipo">${f.tipo||''}</div>
+        ${f.observacao?`<div class="foto-obs">${f.observacao}</div>`:''}
+        <div class="foto-data">${(f.created_at||'').slice(0,10)}</div>
+      </div>
+    </div>`).join(''):'<div style="grid-column:1/-1;color:var(--muted);font-size:.84rem;padding:8px 0">Nenhuma foto adicionada ainda.</div>';
+  document.getElementById('fotoObs').value='';
+  document.getElementById('fotoFileInput').value='';
+  document.getElementById('fotoPreviewWrap').style.display='none';
+}
+function cliTab(name){
+  const tabs=document.querySelectorAll('.cli-mtab');
+  const secs=document.querySelectorAll('.cli-section');
+  const names=['dados','anamneses','fotos'];
+  tabs.forEach((t,i)=>t.classList.toggle('active',names[i]===name));
+  secs.forEach(s=>s.classList.remove('active'));
+  const sec=document.getElementById(`cliSec-${name}`);
+  if(sec)sec.classList.add('active');
+}
+async function salvarCliente(){
+  const body={
+    nome:document.getElementById('cliNome').value.trim(),
+    telefone:document.getElementById('cliTelefone').value.trim(),
+    email:document.getElementById('cliEmail').value.trim(),
+    data_nascimento:document.getElementById('cliNascimento').value,
+    cpf:document.getElementById('cliCpf').value.trim(),
+    procedimento_interesse:document.getElementById('cliProcedimento').value.trim(),
+    endereco:document.getElementById('cliEndereco').value.trim(),
+    queixa_principal:document.getElementById('cliQueixa').value.trim(),
+    observacoes:document.getElementById('cliObs').value.trim(),
+  };
+  if(!body.nome){toast('Informe o nome do cliente.','err');return;}
+  const isNovo=!_clienteAtual;
+  const url=isNovo?'/api/admin/clientes':`/api/admin/clientes/${_clienteAtual.id}`;
+  const r=await fetch(url,{method:isNovo?'POST':'PUT',headers:{'Content-Type':'application/json','x-admin-password':pwd},body:JSON.stringify(body)});
+  if(!r.ok){toast('Erro ao salvar cliente.','err');return;}
+  const saved=await r.json();
+  _clienteAtual=saved;
+  document.getElementById('cliModalNome').textContent=saved.nome;
+  toast('Cliente salvo com sucesso.','ok');
+  carregarClientes(document.getElementById('cliSearch').value);
+}
+function selTipoFoto(btn){
+  document.querySelectorAll('.tipo-btn').forEach(b=>b.classList.remove('sel'));
+  btn.classList.add('sel');
+  _cliTipoFoto=btn.dataset.tipo;
+}
+function previewFoto(input){
+  const file=input.files[0];if(!file)return;
+  const reader=new FileReader();
+  reader.onload=e=>{
+    document.getElementById('fotoPreview').src=e.target.result;
+    document.getElementById('fotoPreviewWrap').style.display='block';
+  };
+  reader.readAsDataURL(file);
+}
+async function enviarFoto(){
+  if(!_clienteAtual){toast('Salve o cliente primeiro.','err');return;}
+  const input=document.getElementById('fotoFileInput');
+  const file=input.files[0];
+  if(!file){toast('Escolha uma foto antes de salvar.','err');return;}
+  const reader=new FileReader();
+  reader.onload=async e=>{
+    const body={base64:e.target.result,tipo:_cliTipoFoto,
+      observacao:document.getElementById('fotoObs').value.trim(),nome_arquivo:file.name};
+    const r=await fetch(`/api/admin/clientes/${_clienteAtual.id}/fotos`,{
+      method:'POST',headers:{'Content-Type':'application/json','x-admin-password':pwd},body:JSON.stringify(body)});
+    if(!r.ok){const err=await r.json().catch(()=>({}));toast(err.erro||'Erro ao enviar foto.','err');return;}
+    toast('Foto adicionada.','ok');
+    await abrirCliente(_clienteAtual.id);
+    cliTab('fotos');
+  };
+  reader.readAsDataURL(file);
 }
 
 // ── Helpers ──
