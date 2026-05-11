@@ -2183,7 +2183,7 @@ async function excluirCliente(){
   if(!_clienteAtual){toast('Nenhum cliente selecionado.','err');return;}
   if(!confirm(`Excluir o cliente "${_clienteAtual.nome}" permanentemente?\nTodas as fotos e vínculos serão removidos.`)) return;
   const r=await fetch(`/api/admin/clientes/${_clienteAtual.id}`,{method:'DELETE',headers:{'x-admin-password':pwd}});
-  if(!r.ok){toast('Erro ao excluir cliente.','err');return;}
+  if(!r.ok){const e=await r.json().catch(()=>({}));toast(e.erro||`Erro ${r.status} ao excluir cliente.`,'err');return;}
   fecharModal('modalCliente');
   _clienteAtual=null;
   toast('Cliente excluído.','ok');
