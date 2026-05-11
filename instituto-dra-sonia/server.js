@@ -1140,7 +1140,7 @@ app.delete('/api/admin/clientes/:id', verificarAdmin, async (req, res) => {
     }
     const dados = lerDados();
     const idx = dados.clientes.findIndex(c => c.id === id);
-    if (idx === -1) return res.status(404).json({ erro: 'Cliente não encontrado' });
+    if (idx === -1) return res.json({ mensagem: 'Cliente excluído' }); // já não existe, ok
     // Remove fotos locais do disco
     const fotos = dados.cliente_fotos.filter(f => f.cliente_id === id);
     fotos.forEach(f => {
