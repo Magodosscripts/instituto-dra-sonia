@@ -1164,11 +1164,18 @@ app.post('/api/admin/clientes/:id/fotos', verificarAdmin, async (req, res) => {
       if (error) return res.status(500).json({ erro: 'Erro ao salvar foto no banco: ' + error.message });
       return res.status(201).json(foto);
     }
+    // Salva arquivo em public/uploads/clientes/ para ter URL acessível localmente
+    const uploadsDir = path.join(__dirname, 'public', 'uploads', 'clientes', clienteId);
+    if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true });
+    const filename = `${Date.now()}.${ext}`;
+    fs.writeFileSync(path.join(uploadsDir, filename), buffer);
+    url = `/uploads/clientes/${clienteId}/${filename}`;
+
     const dados = lerDados();
     const foto = {
-      id: 'f' + Date.now(), cliente_id: clienteId, url: null,
+      id: 'f' + Date.now(), cliente_id: clienteId, url,
       tipo: tipo||'outros', observacao: observacao||null,
-      nome_arquivo: nome_arquivo||null, created_at: agoraISO(),
+      nome_arquivo: nome_arquivo||filename, created_at: agoraISO(),
     };
     dados.cliente_fotos.push(foto);
     salvarDados(dados);
@@ -1192,6 +1199,11 @@ app.delete('/api/admin/clientes/:id/fotos/:fotoId', verificarAdmin, async (req, 
     const dados = lerDados();
     const idx = dados.cliente_fotos.findIndex(f => f.id === fotoId && f.cliente_id === clienteId);
     if (idx === -1) return res.status(404).json({ erro: 'Foto não encontrada' });
+    const fotoLocal = dados.cliente_fotos[idx];
+    if (fotoLocal.url && fotoLocal.url.startsWith('/uploads/')) {
+      const filePath = path.join(__dirname, 'public', fotoLocal.url);
+      if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
+    }
     dados.cliente_fotos.splice(idx, 1);
     salvarDados(dados);
     return res.json({ mensagem: 'Foto removida' });

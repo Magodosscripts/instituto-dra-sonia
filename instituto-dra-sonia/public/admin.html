@@ -498,6 +498,9 @@ body{background:var(--bg);}
 .tipo-btn.sel{background:var(--wine);color:#fff;border-color:var(--wine);}
 .foto-preview-wrap{margin-bottom:14px;}
 .foto-preview-img{max-width:100%;max-height:150px;border-radius:var(--r-xs);border:1px solid var(--border-l);}
+.foto-dl{position:absolute;top:5px;right:5px;background:rgba(0,0,0,.55);color:#fff;border-radius:50%;width:26px;height:26px;display:flex;align-items:center;justify-content:center;font-size:.78rem;text-decoration:none;opacity:0;transition:opacity .18s;line-height:1;}
+.foto-card:hover .foto-dl{opacity:1;}
+.foto-sel-count{font-size:.78rem;color:var(--wine);font-weight:600;margin-top:6px;}
 
 /* ── IMPRESSÃO ── */
 @media print{
@@ -1259,10 +1262,11 @@ body{background:var(--bg);}
           </div>
           <div class="cli-field" style="margin-bottom:12px"><label>Observação (opcional)</label><input id="fotoObs" type="text" placeholder="Ex: 15 dias após procedimento"></div>
           <div class="foto-preview-wrap" id="fotoPreviewWrap" style="display:none"><img id="fotoPreview" class="foto-preview-img" alt="preview"></div>
-          <input type="file" id="fotoFileInput" accept="image/*" style="display:none" onchange="previewFoto(this)">
-          <div style="display:flex;gap:10px;margin-top:4px;flex-wrap:wrap;">
-            <button class="btn-sec" onclick="document.getElementById('fotoFileInput').click()">📎 Escolher foto</button>
-            <button class="btn-salvar" onclick="enviarFoto()">Salvar foto</button>
+          <div id="fotoSelCount" class="foto-sel-count" style="display:none"></div>
+          <input type="file" id="fotoFileInput" accept="image/*" multiple style="display:none" onchange="previewFoto(this)">
+          <div style="display:flex;gap:10px;margin-top:8px;flex-wrap:wrap;align-items:center;">
+            <button class="btn-sec" onclick="document.getElementById('fotoFileInput').click()">📎 Escolher fotos</button>
+            <button class="btn-salvar" id="btnEnviarFoto" onclick="enviarFoto()">Salvar</button>
           </div>
         </div>
       </div>
@@ -2106,6 +2110,7 @@ function _preencherModalCliente(c){
   gEl.innerHTML=fotos.length?fotos.map(f=>`
     <div class="foto-card">
       ${f.url?`<img class="foto-img" src="${f.url}" alt="${f.tipo||'foto'}">`:`<div class="foto-img-ph">🖼</div>`}
+      ${f.url?`<a class="foto-dl" href="${f.url}" download="${f.nome_arquivo||'foto'}" title="Baixar foto">⬇</a>`:''}
       <div class="foto-info">
         <div class="foto-tipo">${f.tipo||''}</div>
         ${f.observacao?`<div class="foto-obs">${f.observacao}</div>`:''}
@@ -2154,31 +2159,46 @@ function selTipoFoto(btn){
   _cliTipoFoto=btn.dataset.tipo;
 }
 function previewFoto(input){
-  const file=input.files[0];if(!file)return;
+  const files=input.files;
+  if(!files.length) return;
+  const countEl=document.getElementById('fotoSelCount');
+  if(files.length>1){
+    document.getElementById('fotoPreviewWrap').style.display='none';
+    countEl.textContent=`${files.length} fotos selecionadas`;
+    countEl.style.display='block';
+    return;
+  }
+  countEl.style.display='none';
   const reader=new FileReader();
   reader.onload=e=>{
     document.getElementById('fotoPreview').src=e.target.result;
     document.getElementById('fotoPreviewWrap').style.display='block';
   };
-  reader.readAsDataURL(file);
+  reader.readAsDataURL(files[0]);
 }
 async function enviarFoto(){
   if(!_clienteAtual){toast('Salve o cliente primeiro.','err');return;}
   const input=document.getElementById('fotoFileInput');
-  const file=input.files[0];
-  if(!file){toast('Escolha uma foto antes de salvar.','err');return;}
-  const reader=new FileReader();
-  reader.onload=async e=>{
-    const body={base64:e.target.result,tipo:_cliTipoFoto,
-      observacao:document.getElementById('fotoObs').value.trim(),nome_arquivo:file.name};
-    const r=await fetch(`/api/admin/clientes/${_clienteAtual.id}/fotos`,{
-      method:'POST',headers:{'Content-Type':'application/json','x-admin-password':pwd},body:JSON.stringify(body)});
-    if(!r.ok){const err=await r.json().catch(()=>({}));toast(err.erro||'Erro ao enviar foto.','err');return;}
-    toast('Foto adicionada.','ok');
-    await abrirCliente(_clienteAtual.id);
-    cliTab('fotos');
-  };
-  reader.readAsDataURL(file);
+  const files=Array.from(input.files);
+  if(!files.length){toast('Escolha uma ou mais fotos.','err');return;}
+  const btn=document.getElementById('btnEnviarFoto');
+  btn.disabled=true; btn.textContent='Enviando...';
+  const obs=document.getElementById('fotoObs').value.trim();
+  let ok=0,fail=0;
+  for(const file of files){
+    try{
+      const base64=await new Promise((res,rej)=>{const r=new FileReader();r.onload=e=>res(e.target.result);r.onerror=rej;r.readAsDataURL(file);});
+      const r=await fetch(`/api/admin/clientes/${_clienteAtual.id}/fotos`,{
+        method:'POST',headers:{'Content-Type':'application/json','x-admin-password':pwd},
+        body:JSON.stringify({base64,tipo:_cliTipoFoto,observacao:obs,nome_arquivo:file.name})});
+      if(r.ok) ok++; else {const e=await r.json().catch(()=>({}));console.warn(e.erro);fail++;}
+    }catch{fail++;}
+  }
+  btn.disabled=false; btn.textContent='Salvar';
+  if(ok>0) toast(`${ok} foto${ok>1?'s':''} adicionada${ok>1?'s':''}.`,'ok');
+  if(fail>0) toast(`${fail} foto${fail>1?'s':''} com erro.`,'err');
+  await abrirCliente(_clienteAtual.id);
+  cliTab('fotos');
 }
 
 // ── Helpers ──
